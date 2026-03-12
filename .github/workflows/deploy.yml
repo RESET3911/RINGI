@@ -26,6 +26,7 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm install
+      - run: chmod +x node_modules/.bin/*
       - run: npm run build
       - uses: actions/configure-pages@v4
       - uses: actions/upload-pages-artifact@v3
