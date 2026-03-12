@@ -1,0 +1,139 @@
+import { useState, useCallback } from 'react';
+import { User, Settings, Application } from './types';
+import { loadSettings, saveSettings, loadApplications, saveApplications } from './utils/storage';
+import HomeScreen from './components/HomeScreen';
+import ApplicationScreen from './components/ApplicationScreen';
+import ApprovalScreen from './components/ApprovalScreen';
+import HistoryScreen from './components/HistoryScreen';
+import SettingsScreen from './components/SettingsScreen';
+
+type Screen = 'home' | 'apply' | 'approve' | 'history' | 'settings';
+
+export default function App() {
+  const [settings, setSettings] = useState<Settings>(loadSettings);
+  const [applications, setApplications] = useState<Application[]>(loadApplications);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [screen, setScreen] = useState<Screen>('home');
+
+  const handleSelectUser = (user: User) => {
+    setCurrentUser(user);
+    setScreen('apply');
+  };
+
+  const handleSaveSettings = useCallback((newSettings: Settings) => {
+    setSettings(newSettings);
+    saveSettings(newSettings);
+  }, []);
+
+  const handleSubmitApplication = useCallback((app: Application) => {
+    setApplications(prev => {
+      const next = [...prev, app];
+      saveApplications(next);
+      return next;
+    });
+  }, []);
+
+  const handleDecide = useCallback((id: string, status: 'approved' | 'rejected', comment?: string) => {
+    setApplications(prev => {
+      const next = prev.map(a =>
+        a.id === id ? { ...a, status, comment, decidedAt: new Date().toISOString() } : a
+      );
+      saveApplications(next);
+      return next;
+    });
+  }, []);
+
+  const pendingForCurrent = currentUser
+    ? applications.filter(a => a.status === 'pending' && a.applicant !== currentUser).length
+    : 0;
+
+  // Bottom nav tabs
+  const tabs: { key: Screen; label: string; icon: string }[] = [
+    { key: 'apply', label: '申請', icon: '📝' },
+    { key: 'approve', label: `決裁${pendingForCurrent > 0 ? `(${pendingForCurrent})` : ''}`, icon: '🔖' },
+    { key: 'history', label: '履歴', icon: '📋' },
+    { key: 'settings', label: '設定', icon: '⚙️' },
+  ];
+
+  if (!currentUser || screen === 'home') {
+    return (
+      <HomeScreen
+        settings={settings}
+        applications={applications}
+        onSelectUser={handleSelectUser}
+      />
+    );
+  }
+
+  const userName = currentUser === 'A' ? settings.userA.name : settings.userB.name;
+
+  return (
+    <div className="min-h-screen bg-gray-50 pb-20">
+      {/* Top bar */}
+      <div className="bg-white border-b border-gray-100 sticky top-0 z-10">
+        <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
+          <button
+            onClick={() => { setCurrentUser(null); setScreen('home'); }}
+            className="text-gray-500 p-2 -ml-2 min-h-[44px] min-w-[44px] flex items-center justify-center"
+          >
+            ←
+          </button>
+          <div className="text-center">
+            <p className="font-bold text-gray-900 text-sm">カップル稟議</p>
+            <p className="text-xs text-primary-500">{userName}モード</p>
+          </div>
+          <div className="w-10" />
+        </div>
+      </div>
+
+      {/* Screen content */}
+      <div className="max-w-lg mx-auto">
+        {screen === 'apply' && (
+          <ApplicationScreen
+            currentUser={currentUser}
+            settings={settings}
+            onSubmit={handleSubmitApplication}
+          />
+        )}
+        {screen === 'approve' && (
+          <ApprovalScreen
+            currentUser={currentUser}
+            settings={settings}
+            applications={applications}
+            onDecide={handleDecide}
+          />
+        )}
+        {screen === 'history' && (
+          <HistoryScreen
+            settings={settings}
+            applications={applications}
+          />
+        )}
+        {screen === 'settings' && (
+          <SettingsScreen
+            settings={settings}
+            onSave={handleSaveSettings}
+          />
+        )}
+      </div>
+
+      {/* Bottom navigation */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-10">
+        <div className="max-w-lg mx-auto flex">
+          {tabs.map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setScreen(tab.key)}
+              className={`flex-1 flex flex-col items-center py-2 gap-0.5 min-h-[60px] transition-colors ${
+                screen === tab.key ? 'text-primary-500' : 'text-gray-400'
+              }`}
+            >
+              <span className="text-xl">{tab.icon}</span>
+              <span className="text-xs font-medium">{tab.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
