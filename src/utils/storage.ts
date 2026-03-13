@@ -1,7 +1,6 @@
+import { db } from '../firebase';
+import { doc, setDoc, updateDoc, collection, onSnapshot } from 'firebase/firestore';
 import { Settings, Application } from '../types';
-
-const SETTINGS_KEY = 'ringi_settings';
-const APPLICATIONS_KEY = 'ringi_applications';
 
 export const defaultSettings: Settings = {
   userA: { name: 'Aさん', email: '' },
@@ -13,32 +12,40 @@ export const defaultSettings: Settings = {
   alertThresholdDanger: 0.50,
 };
 
-export function loadSettings(): Settings {
-  try {
-    const raw = localStorage.getItem(SETTINGS_KEY);
-    if (!raw) return { ...defaultSettings };
-    return { ...defaultSettings, ...JSON.parse(raw) };
-  } catch {
-    return { ...defaultSettings };
-  }
+export async function saveSettings(settings: Settings): Promise<void> {
+  await setDoc(doc(db, 'ringi', 'settings'), settings);
 }
 
-export function saveSettings(settings: Settings): void {
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+export async function saveApplication(app: Application): Promise<void> {
+  await setDoc(doc(db, 'applications', app.id), app);
 }
 
-export function loadApplications(): Application[] {
-  try {
-    const raw = localStorage.getItem(APPLICATIONS_KEY);
-    if (!raw) return [];
-    return JSON.parse(raw) as Application[];
-  } catch {
-    return [];
-  }
+export async function updateApplication(
+  id: string,
+  data: Partial<Application>
+): Promise<void> {
+  await updateDoc(doc(db, 'applications', id), data);
 }
 
-export function saveApplications(apps: Application[]): void {
-  localStorage.setItem(APPLICATIONS_KEY, JSON.stringify(apps));
+export function subscribeSettings(
+  callback: (settings: Settings) => void
+): () => void {
+  return onSnapshot(doc(db, 'ringi', 'settings'), snap => {
+    if (snap.exists()) {
+      callback({ ...defaultSettings, ...(snap.data() as Settings) });
+    } else {
+      callback({ ...defaultSettings });
+    }
+  });
+}
+
+export function subscribeApplications(
+  callback: (apps: Application[]) => void
+): () => void {
+  return onSnapshot(collection(db, 'applications'), snap => {
+    const apps = snap.docs.map(d => d.data() as Application);
+    callback(apps);
+  });
 }
 
 export function isSettingsComplete(settings: Settings): boolean {

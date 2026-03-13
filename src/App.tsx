@@ -1,6 +1,13 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { User, Settings, Application } from './types';
-import { loadSettings, saveSettings, loadApplications, saveApplications } from './utils/storage';
+import {
+  defaultSettings,
+  saveSettings,
+  saveApplication,
+  updateApplication,
+  subscribeSettings,
+  subscribeApplications,
+} from './utils/storage';
 import HomeScreen from './components/HomeScreen';
 import ApplicationScreen from './components/ApplicationScreen';
 import ApprovalScreen from './components/ApprovalScreen';
@@ -10,10 +17,26 @@ import SettingsScreen from './components/SettingsScreen';
 type Screen = 'home' | 'apply' | 'approve' | 'history' | 'settings';
 
 export default function App() {
-  const [settings, setSettings] = useState<Settings>(loadSettings);
-  const [applications, setApplications] = useState<Application[]>(loadApplications);
+  const [settings, setSettings] = useState<Settings>(defaultSettings);
+  const [applications, setApplications] = useState<Application[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [screen, setScreen] = useState<Screen>('home');
+  const [loading, setLoading] = useState(true);
+
+  // Firestore リアルタイム同期
+  useEffect(() => {
+    const unsubSettings = subscribeSettings(s => {
+      setSettings(s);
+      setLoading(false);
+    });
+    const unsubApps = subscribeApplications(apps => {
+      setApplications(apps);
+    });
+    return () => {
+      unsubSettings();
+      unsubApps();
+    };
+  }, []);
 
   const handleSelectUser = (user: User) => {
     setCurrentUser(user);
@@ -26,20 +49,14 @@ export default function App() {
   }, []);
 
   const handleSubmitApplication = useCallback((app: Application) => {
-    setApplications(prev => {
-      const next = [...prev, app];
-      saveApplications(next);
-      return next;
-    });
+    saveApplication(app);
   }, []);
 
   const handleDecide = useCallback((id: string, status: 'approved' | 'rejected', comment?: string) => {
-    setApplications(prev => {
-      const next = prev.map(a =>
-        a.id === id ? { ...a, status, comment, decidedAt: new Date().toISOString() } : a
-      );
-      saveApplications(next);
-      return next;
+    updateApplication(id, {
+      status,
+      comment,
+      decidedAt: new Date().toISOString(),
     });
   }, []);
 
@@ -47,13 +64,23 @@ export default function App() {
     ? applications.filter(a => a.status === 'pending' && a.applicant !== currentUser).length
     : 0;
 
-  // Bottom nav tabs
   const tabs: { key: Screen; label: string; icon: string }[] = [
     { key: 'apply', label: '申請', icon: '📝' },
     { key: 'approve', label: `決裁${pendingForCurrent > 0 ? `(${pendingForCurrent})` : ''}`, icon: '🔖' },
     { key: 'history', label: '履歴', icon: '📋' },
     { key: 'settings', label: '設定', icon: '⚙️' },
   ];
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-primary-50 to-white">
+        <div className="text-center">
+          <div className="text-4xl mb-3">💑</div>
+          <p className="text-gray-500 text-sm">読み込み中...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!currentUser || screen === 'home') {
     return (
