@@ -16,14 +16,16 @@ import SettingsScreen from './components/SettingsScreen';
 
 type Screen = 'home' | 'apply' | 'approve' | 'history' | 'settings';
 
+type ReapplyValues = { item: string; amount: number; reason?: string; reapplyFromId?: string };
+
 export default function App() {
   const [settings, setSettings] = useState<Settings>(defaultSettings);
   const [applications, setApplications] = useState<Application[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [screen, setScreen] = useState<Screen>('home');
   const [loading, setLoading] = useState(true);
+  const [reapplyValues, setReapplyValues] = useState<ReapplyValues | undefined>(undefined);
 
-  // Firestore リアルタイム同期
   useEffect(() => {
     const unsubSettings = subscribeSettings(s => {
       setSettings(s);
@@ -32,10 +34,7 @@ export default function App() {
     const unsubApps = subscribeApplications(apps => {
       setApplications(apps);
     });
-    return () => {
-      unsubSettings();
-      unsubApps();
-    };
+    return () => { unsubSettings(); unsubApps(); };
   }, []);
 
   const handleSelectUser = (user: User) => {
@@ -53,11 +52,12 @@ export default function App() {
   }, []);
 
   const handleDecide = useCallback((id: string, status: 'approved' | 'rejected', comment?: string) => {
-    updateApplication(id, {
-      status,
-      comment,
-      decidedAt: new Date().toISOString(),
-    });
+    updateApplication(id, { status, comment, decidedAt: new Date().toISOString() });
+  }, []);
+
+  const handleReapply = useCallback((app: Application) => {
+    setReapplyValues({ item: app.item, amount: app.amount, reason: app.reason, reapplyFromId: app.id });
+    setScreen('apply');
   }, []);
 
   const pendingForCurrent = currentUser
@@ -75,7 +75,7 @@ export default function App() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-primary-50 to-white">
         <div className="text-center">
-          <div className="text-4xl mb-3">💑</div>
+          <div className="text-4xl mb-3">{defaultSettings.appIcon}</div>
           <p className="text-gray-500 text-sm">読み込み中...</p>
         </div>
       </div>
@@ -100,13 +100,13 @@ export default function App() {
       <div className="bg-white border-b border-gray-100 sticky top-0 z-10">
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
           <button
-            onClick={() => { setCurrentUser(null); setScreen('home'); }}
+            onClick={() => { setCurrentUser(null); setScreen('home'); setReapplyValues(undefined); }}
             className="text-gray-500 p-2 -ml-2 min-h-[44px] min-w-[44px] flex items-center justify-center"
           >
             ←
           </button>
           <div className="text-center">
-            <p className="font-bold text-gray-900 text-sm">カップル稟議</p>
+            <p className="font-bold text-gray-900 text-sm">{settings.appIcon} RINGI</p>
             <p className="text-xs text-primary-500">{userName}モード</p>
           </div>
           <div className="w-10" />
@@ -120,6 +120,7 @@ export default function App() {
             currentUser={currentUser}
             settings={settings}
             onSubmit={handleSubmitApplication}
+            initialValues={reapplyValues}
           />
         )}
         {screen === 'approve' && (
@@ -134,6 +135,8 @@ export default function App() {
           <HistoryScreen
             settings={settings}
             applications={applications}
+            currentUser={currentUser}
+            onReapply={app => { handleReapply(app); }}
           />
         )}
         {screen === 'settings' && (
@@ -150,7 +153,10 @@ export default function App() {
           {tabs.map(tab => (
             <button
               key={tab.key}
-              onClick={() => setScreen(tab.key)}
+              onClick={() => {
+                if (tab.key !== 'apply') setReapplyValues(undefined);
+                setScreen(tab.key);
+              }}
               className={`flex-1 flex flex-col items-center py-2 gap-0.5 min-h-[60px] transition-colors ${
                 screen === tab.key ? 'text-primary-500' : 'text-gray-400'
               }`}

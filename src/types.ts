@@ -6,8 +6,9 @@ export type Settings = {
   monthlyIncome: number;
   extraIncome: number;
   fixedCosts: { id: string; label: string; amount: number }[];
-  alertThresholdWarning: number;  // デフォルト 0.30
-  alertThresholdDanger: number;   // デフォルト 0.50
+  alertThresholdWarning: number;
+  alertThresholdDanger: number;
+  appIcon: string;
 };
 
 export type Application = {
@@ -20,6 +21,7 @@ export type Application = {
   comment?: string;
   createdAt: string;
   decidedAt?: string;
+  reapplyFromId?: string;
 };
 
 export type AlertLevel = 'none' | 'warning' | 'danger';

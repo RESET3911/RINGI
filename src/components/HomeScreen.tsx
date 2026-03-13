@@ -46,7 +46,7 @@ export default function HomeScreen({ settings, applications, onSelectUser }: Pro
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold bg-gradient-to-r from-primary-500 to-accent-500 bg-clip-text text-transparent">
-            💑 カップル稟議
+            {settings.appIcon} RINGI
           </h1>
           <p className="text-gray-500 mt-2 text-sm">2人の購入申請・決裁システム</p>
         </div>

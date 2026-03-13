@@ -10,6 +10,7 @@ export const defaultSettings: Settings = {
   fixedCosts: [],
   alertThresholdWarning: 0.30,
   alertThresholdDanger: 0.50,
+  appIcon: '💑',
 };
 
 export async function saveSettings(settings: Settings): Promise<void> {

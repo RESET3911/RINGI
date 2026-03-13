@@ -10,18 +10,20 @@ type Props = {
   currentUser: User;
   settings: Settings;
   onSubmit: (app: Application) => void;
+  initialValues?: { item: string; amount: number; reason?: string; reapplyFromId?: string };
 };
 
-export default function ApplicationScreen({ currentUser, settings, onSubmit }: Props) {
-  const [item, setItem] = useState('');
-  const [amount, setAmount] = useState('');
-  const [reason, setReason] = useState('');
+export default function ApplicationScreen({ currentUser, settings, onSubmit, initialValues }: Props) {
+  const [item, setItem] = useState(initialValues?.item ?? '');
+  const [amount, setAmount] = useState(initialValues?.amount ? String(initialValues.amount) : '');
+  const [reason, setReason] = useState(initialValues?.reason ?? '');
   const [showConfirm, setShowConfirm] = useState(false);
   const [submitted, setSubmitted] = useState<Application | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
   const numAmount = parseFloat(amount) || 0;
   const alert = numAmount > 0 ? calcAlert(numAmount, settings) : null;
+  const isReapply = !!initialValues?.reapplyFromId;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,6 +40,7 @@ export default function ApplicationScreen({ currentUser, settings, onSubmit }: P
       reason: reason.trim() || undefined,
       status: 'pending',
       createdAt: new Date().toISOString(),
+      reapplyFromId: initialValues?.reapplyFromId,
     };
     onSubmit(app);
     setSubmitted(app);
@@ -46,7 +49,7 @@ export default function ApplicationScreen({ currentUser, settings, onSubmit }: P
     setAmount('');
     setReason('');
     setToast('申請を送信しました！');
-  }, [currentUser, item, numAmount, reason, onSubmit]);
+  }, [currentUser, item, numAmount, reason, onSubmit, initialValues]);
 
   const otherUser = currentUser === 'A' ? settings.userB : settings.userA;
   const selfUser = currentUser === 'A' ? settings.userA : settings.userB;
@@ -65,7 +68,14 @@ export default function ApplicationScreen({ currentUser, settings, onSubmit }: P
 
   return (
     <div className="max-w-lg mx-auto px-4 py-6">
-      <h2 className="text-xl font-bold text-gray-900 mb-6">📝 新規申請</h2>
+      <div className="flex items-center gap-2 mb-6">
+        <h2 className="text-xl font-bold text-gray-900">📝 {isReapply ? '再申請' : '新規申請'}</h2>
+        {isReapply && (
+          <span className="text-xs bg-orange-100 text-orange-600 font-semibold px-2 py-1 rounded-full">
+            再申請
+          </span>
+        )}
+      </div>
 
       {submitted ? (
         <div className="card text-center py-8">
@@ -129,7 +139,6 @@ export default function ApplicationScreen({ currentUser, settings, onSubmit }: P
             />
           </div>
 
-          {/* Alert */}
           {alert && <AlertBadge alert={alert} />}
 
           <button
@@ -144,7 +153,7 @@ export default function ApplicationScreen({ currentUser, settings, onSubmit }: P
 
       {showConfirm && (
         <ConfirmModal
-          title="申請の確認"
+          title={isReapply ? '再申請の確認' : '申請の確認'}
           message={`「${item}」を ${formatCurrency(numAmount)} で申請しますか？`}
           confirmLabel="申請する"
           onConfirm={confirmSubmit}

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Application, Settings } from '../types';
+import { Application, Settings, User } from '../types';
 import { formatCurrency } from '../utils/alert';
 
 type Filter = 'all' | 'pending' | 'approved' | 'rejected';
@@ -7,6 +7,8 @@ type Filter = 'all' | 'pending' | 'approved' | 'rejected';
 type Props = {
   settings: Settings;
   applications: Application[];
+  currentUser: User;
+  onReapply: (app: Application) => void;
 };
 
 const statusLabel: Record<Application['status'], string> = {
@@ -21,23 +23,25 @@ const statusColor: Record<Application['status'], string> = {
   rejected: 'bg-red-100 text-red-700',
 };
 
-export default function HistoryScreen({ settings, applications }: Props) {
+export default function HistoryScreen({ settings, applications, currentUser, onReapply }: Props) {
   const [filter, setFilter] = useState<Filter>('all');
 
   const filtered = applications
     .filter(a => filter === 'all' || a.status === filter)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-  // Monthly summary
-  const monthlySummary = applications
-    .filter(a => a.status === 'approved')
-    .reduce((acc, a) => {
-      const key = a.createdAt.slice(0, 7); // YYYY-MM
-      acc[key] = (acc[key] || 0) + a.amount;
-      return acc;
-    }, {} as Record<string, number>);
+  // 月別サマリー（申請数・金額・承認数・否決数）
+  type MonthStat = { total: number; amount: number; approved: number; rejected: number };
+  const monthlyStats = applications.reduce((acc, a) => {
+    const key = a.createdAt.slice(0, 7);
+    if (!acc[key]) acc[key] = { total: 0, amount: 0, approved: 0, rejected: 0 };
+    acc[key].total += 1;
+    if (a.status === 'approved') { acc[key].approved += 1; acc[key].amount += a.amount; }
+    if (a.status === 'rejected') acc[key].rejected += 1;
+    return acc;
+  }, {} as Record<string, MonthStat>);
 
-  const sortedMonths = Object.keys(monthlySummary).sort().reverse().slice(0, 3);
+  const sortedMonths = Object.keys(monthlyStats).sort().reverse().slice(0, 3);
 
   const getName = (user: 'A' | 'B') => user === 'A' ? settings.userA.name : settings.userB.name;
 
@@ -55,18 +59,36 @@ export default function HistoryScreen({ settings, applications }: Props) {
       {/* Monthly summary */}
       {sortedMonths.length > 0 && (
         <div className="card mb-6">
-          <p className="text-sm font-semibold text-gray-700 mb-3">月別承認金額サマリー</p>
-          <div className="space-y-2">
-            {sortedMonths.map(month => (
-              <div key={month} className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">
-                  {month.replace('-', '年')}月
-                </span>
-                <span className="font-semibold text-primary-500">
-                  {formatCurrency(monthlySummary[month])}
-                </span>
-              </div>
-            ))}
+          <p className="text-sm font-semibold text-gray-700 mb-3">月別サマリー</p>
+          <div className="space-y-4">
+            {sortedMonths.map(month => {
+              const s = monthlyStats[month];
+              return (
+                <div key={month}>
+                  <p className="text-sm font-semibold text-gray-600 mb-2">
+                    {month.replace('-', '年')}月
+                  </p>
+                  <div className="grid grid-cols-4 gap-2">
+                    <div className="bg-gray-50 rounded-xl p-2 text-center">
+                      <p className="text-xs text-gray-400">申請数</p>
+                      <p className="text-base font-bold text-gray-700">{s.total}</p>
+                    </div>
+                    <div className="bg-green-50 rounded-xl p-2 text-center">
+                      <p className="text-xs text-gray-400">承認</p>
+                      <p className="text-base font-bold text-green-600">{s.approved}</p>
+                    </div>
+                    <div className="bg-red-50 rounded-xl p-2 text-center">
+                      <p className="text-xs text-gray-400">否決</p>
+                      <p className="text-base font-bold text-red-500">{s.rejected}</p>
+                    </div>
+                    <div className="bg-primary-50 rounded-xl p-2 text-center">
+                      <p className="text-xs text-gray-400">承認額</p>
+                      <p className="text-xs font-bold text-primary-500">{formatCurrency(s.amount)}</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -97,7 +119,14 @@ export default function HistoryScreen({ settings, applications }: Props) {
           {filtered.map(app => (
             <div key={app.id} className="card">
               <div className="flex items-start justify-between mb-1">
-                <h3 className="font-semibold text-gray-900">{app.item}</h3>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="font-semibold text-gray-900">{app.item}</h3>
+                  {app.reapplyFromId && (
+                    <span className="text-xs bg-orange-100 text-orange-600 font-semibold px-2 py-0.5 rounded-full">
+                      再申請
+                    </span>
+                  )}
+                </div>
                 <span className="font-bold text-primary-500 ml-2 whitespace-nowrap">
                   {formatCurrency(app.amount)}
                 </span>
@@ -116,10 +145,20 @@ export default function HistoryScreen({ settings, applications }: Props) {
               {app.comment && (
                 <p className="text-xs text-red-500 mt-1 bg-red-50 rounded-lg px-2 py-1">💬 {app.comment}</p>
               )}
-              <p className="text-xs text-gray-400 mt-2">
-                {new Date(app.createdAt).toLocaleDateString('ja-JP', { year: 'numeric', month: 'short', day: 'numeric' })}
-                {app.decidedAt && ` → 決裁: ${new Date(app.decidedAt).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' })}`}
-              </p>
+              <div className="flex items-center justify-between mt-2">
+                <p className="text-xs text-gray-400">
+                  {new Date(app.createdAt).toLocaleDateString('ja-JP', { year: 'numeric', month: 'short', day: 'numeric' })}
+                  {app.decidedAt && ` → ${new Date(app.decidedAt).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' })}`}
+                </p>
+                {app.status === 'rejected' && app.applicant === currentUser && (
+                  <button
+                    onClick={() => onReapply(app)}
+                    className="text-xs bg-primary-100 text-primary-600 font-semibold px-3 py-1.5 rounded-full active:bg-primary-200"
+                  >
+                    再申請する
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>

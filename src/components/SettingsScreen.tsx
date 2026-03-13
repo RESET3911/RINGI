@@ -9,6 +9,8 @@ type Props = {
   onSave: (settings: Settings) => void;
 };
 
+const ICON_OPTIONS = ['💑', '💍', '🏠', '💰', '🛒', '🎁', '🌸', '⭐', '🔥', '🎀'];
+
 export default function SettingsScreen({ settings, onSave }: Props) {
   const [form, setForm] = useState<Settings>(JSON.parse(JSON.stringify(settings)));
   const [toast, setToast] = useState<string | null>(null);
@@ -45,6 +47,38 @@ export default function SettingsScreen({ settings, onSave }: Props) {
       <h2 className="text-xl font-bold text-gray-900 mb-6">⚙️ 設定</h2>
 
       <div className="space-y-6">
+        {/* App icon */}
+        <div className="card">
+          <h3 className="font-bold text-gray-900 mb-3">🎨 アプリアイコン</h3>
+          <div className="flex flex-wrap gap-2">
+            {ICON_OPTIONS.map(icon => (
+              <button
+                key={icon}
+                onClick={() => setForm(f => ({ ...f, appIcon: icon }))}
+                className={`text-2xl w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${
+                  form.appIcon === icon
+                    ? 'bg-primary-100 ring-2 ring-primary-400'
+                    : 'bg-gray-100 active:bg-gray-200'
+                }`}
+              >
+                {icon}
+              </button>
+            ))}
+            <input
+              type="text"
+              value={ICON_OPTIONS.includes(form.appIcon) ? '' : form.appIcon}
+              onChange={e => {
+                const val = [...e.target.value].find(() => true) ?? '💑';
+                setForm(f => ({ ...f, appIcon: val }));
+              }}
+              placeholder="✏️"
+              className="w-12 h-12 rounded-xl bg-gray-100 text-center text-xl border-none outline-none focus:ring-2 focus:ring-primary-400"
+              maxLength={2}
+            />
+          </div>
+          <p className="text-xs text-gray-400 mt-2">選択中: <span className="text-lg">{form.appIcon}</span></p>
+        </div>
+
         {/* User Settings */}
         <div className="card">
           <h3 className="font-bold text-gray-900 mb-4">👥 ユーザー設定</h3>
@@ -117,7 +151,6 @@ export default function SettingsScreen({ settings, onSave }: Props) {
             </div>
           </div>
 
-          {/* Fixed costs */}
           <div className="mt-4">
             <label className="label">固定費リスト</label>
             {form.fixedCosts.length > 0 && (
@@ -128,7 +161,7 @@ export default function SettingsScreen({ settings, onSave }: Props) {
                     <span className="text-sm font-medium text-gray-700">{formatCurrency(cost.amount)}</span>
                     <button
                       onClick={() => removeFixedCost(cost.id)}
-                      className="text-red-400 hover:text-red-600 p-1 min-h-[32px] min-w-[32px] flex items-center justify-center"
+                      className="text-red-400 p-1 min-h-[32px] min-w-[32px] flex items-center justify-center"
                     >
                       ✕
                     </button>
@@ -170,7 +203,6 @@ export default function SettingsScreen({ settings, onSave }: Props) {
             </div>
           </div>
 
-          {/* Surplus preview */}
           {(form.monthlyIncome > 0 || totalFixed > 0) && (
             <div className="mt-4 bg-primary-50 rounded-xl p-3">
               <p className="text-xs text-gray-500 mb-1">余剰資金プレビュー</p>

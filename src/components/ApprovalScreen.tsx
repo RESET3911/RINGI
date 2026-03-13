@@ -12,26 +12,42 @@ type Props = {
   onDecide: (id: string, status: 'approved' | 'rejected', comment?: string) => void;
 };
 
+const REJECT_REASONS = [
+  '予算オーバー',
+  '今は時期じゃない',
+  '必要性が低い',
+  '代替案がある',
+  'その他',
+];
+
 export default function ApprovalScreen({ currentUser, settings, applications, onDecide }: Props) {
   const [deciding, setDeciding] = useState<{ app: Application; action: 'approved' | 'rejected' } | null>(null);
-  const [comment, setComment] = useState('');
-  const [decided, setDecided] = useState<{ app: Application; status: 'approved' | 'rejected' } | null>(null);
+  const [selectedReason, setSelectedReason] = useState('');
+  const [customComment, setCustomComment] = useState('');
+  const [decidedIds, setDecidedIds] = useState<Set<string>>(new Set());
+  const [decided, setDecided] = useState<{ app: Application; status: 'approved' | 'rejected'; comment?: string } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
-  // 自分が決裁者 = 相手が申請者
+  // 自分が決裁者 = 相手が申請者。楽観的にdecidedIdsで除外
   const pending = applications.filter(
-    a => a.status === 'pending' && a.applicant !== currentUser
+    a => a.status === 'pending' && a.applicant !== currentUser && !decidedIds.has(a.id)
   );
 
   const otherUser = currentUser === 'A' ? settings.userB : settings.userA;
   const selfUser = currentUser === 'A' ? settings.userA : settings.userB;
 
+  const finalComment = selectedReason === 'その他'
+    ? customComment.trim()
+    : selectedReason || customComment.trim();
+
   const handleDecide = () => {
     if (!deciding) return;
-    onDecide(deciding.app.id, deciding.action, comment.trim() || undefined);
-    setDecided({ app: deciding.app, status: deciding.action });
+    onDecide(deciding.app.id, deciding.action, finalComment || undefined);
+    setDecidedIds(prev => new Set(prev).add(deciding.app.id));
+    setDecided({ app: deciding.app, status: deciding.action, comment: finalComment });
     setDeciding(null);
-    setComment('');
+    setSelectedReason('');
+    setCustomComment('');
     setToast(deciding.action === 'approved' ? '✅ 承認しました' : '❌ 否決しました');
   };
 
@@ -43,7 +59,7 @@ export default function ApprovalScreen({ currentUser, settings, applications, on
       `■ 品目: ${decided.app.item}\n` +
       `■ 金額: ${formatCurrency(decided.app.amount)}\n` +
       `■ 結果: ${isApproved ? '✅ 承認' : '❌ 否決'}\n` +
-      (comment ? `■ コメント: ${comment}\n` : '')
+      (decided.comment ? `■ 理由: ${decided.comment}\n` : '')
     );
     return `mailto:${otherUser.email}?subject=${subject}&body=${body}`;
   })() : '';
@@ -51,14 +67,14 @@ export default function ApprovalScreen({ currentUser, settings, applications, on
   if (decided) {
     return (
       <div className="max-w-lg mx-auto px-4 py-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-6">✅ 決裁完了</h2>
+        <h2 className="text-xl font-bold text-gray-900 mb-6">決裁完了</h2>
         <div className="card text-center py-8">
           <div className="text-5xl mb-4">{decided.status === 'approved' ? '✅' : '❌'}</div>
           <h3 className="text-lg font-bold text-gray-900 mb-2">
             {decided.status === 'approved' ? '承認しました' : '否決しました'}
           </h3>
-          <div className="text-left bg-gray-50 rounded-xl p-4 mb-6 text-sm">
-            <div className="flex justify-between mb-2">
+          <div className="text-left bg-gray-50 rounded-xl p-4 mb-6 text-sm space-y-2">
+            <div className="flex justify-between">
               <span className="text-gray-500">品目</span>
               <span className="font-medium">{decided.app.item}</span>
             </div>
@@ -66,6 +82,12 @@ export default function ApprovalScreen({ currentUser, settings, applications, on
               <span className="text-gray-500">金額</span>
               <span className="font-medium">{formatCurrency(decided.app.amount)}</span>
             </div>
+            {decided.comment && (
+              <div className="flex justify-between">
+                <span className="text-gray-500">理由</span>
+                <span className="font-medium text-red-600">{decided.comment}</span>
+              </div>
+            )}
           </div>
           {otherUser.email && (
             <a href={mailtoLink} className="btn-primary block text-center mb-3">
@@ -98,7 +120,14 @@ export default function ApprovalScreen({ currentUser, settings, applications, on
             return (
               <div key={app.id} className="card">
                 <div className="flex items-start justify-between mb-2">
-                  <h3 className="font-bold text-gray-900 text-base">{app.item}</h3>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-bold text-gray-900 text-base">{app.item}</h3>
+                    {app.reapplyFromId && (
+                      <span className="text-xs bg-orange-100 text-orange-600 font-semibold px-2 py-0.5 rounded-full">
+                        再申請
+                      </span>
+                    )}
+                  </div>
                   <span className="text-primary-500 font-bold text-lg ml-2 whitespace-nowrap">
                     {formatCurrency(app.amount)}
                   </span>
@@ -112,13 +141,13 @@ export default function ApprovalScreen({ currentUser, settings, applications, on
                 {alert.level !== 'none' && <AlertBadge alert={alert} />}
                 <div className="flex gap-3 mt-3">
                   <button
-                    onClick={() => { setDeciding({ app, action: 'rejected' }); setComment(''); }}
+                    onClick={() => { setDeciding({ app, action: 'rejected' }); setSelectedReason(''); setCustomComment(''); }}
                     className="flex-1 btn-danger"
                   >
                     否決
                   </button>
                   <button
-                    onClick={() => { setDeciding({ app, action: 'approved' }); setComment(''); }}
+                    onClick={() => { setDeciding({ app, action: 'approved' }); setSelectedReason(''); setCustomComment(''); }}
                     className="flex-1 btn-primary"
                   >
                     承認
@@ -140,15 +169,27 @@ export default function ApprovalScreen({ currentUser, settings, applications, on
           onCancel={() => setDeciding(null)}
         >
           {deciding.action === 'rejected' && (
-            <div>
-              <label className="label">コメント（任意）</label>
-              <textarea
-                value={comment}
-                onChange={e => setComment(e.target.value)}
-                placeholder="否決理由など..."
-                rows={2}
-                className="input-field resize-none"
-              />
+            <div className="space-y-2">
+              <label className="label">否決理由</label>
+              <select
+                value={selectedReason}
+                onChange={e => setSelectedReason(e.target.value)}
+                className="input-field"
+              >
+                <option value="">選択してください（任意）</option>
+                {REJECT_REASONS.map(r => (
+                  <option key={r} value={r}>{r}</option>
+                ))}
+              </select>
+              {selectedReason === 'その他' && (
+                <textarea
+                  value={customComment}
+                  onChange={e => setCustomComment(e.target.value)}
+                  placeholder="理由を記入..."
+                  rows={2}
+                  className="input-field resize-none"
+                />
+              )}
             </div>
           )}
         </ConfirmModal>
