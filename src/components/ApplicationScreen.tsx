@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { User, Settings, Application } from '../types';
-import { calcAlert, formatCurrency } from '../utils/alert';
+import { calcAlert } from '../utils/alert';
 import AlertBadge from './AlertBadge';
 import Toast from './Toast';
 import ConfirmModal from './ConfirmModal';
@@ -52,19 +52,6 @@ export default function ApplicationScreen({ currentUser, settings, onSubmit, ini
   }, [currentUser, item, numAmount, reason, onSubmit, initialValues]);
 
   const otherUser = currentUser === 'A' ? settings.userB : settings.userA;
-  const selfUser = currentUser === 'A' ? settings.userA : settings.userB;
-
-  const mailtoLink = submitted ? (() => {
-    const subject = encodeURIComponent(`【稟議申請】${submitted.item}`);
-    const body = encodeURIComponent(
-      `${selfUser.name}から稟議申請が届きました。\n\n` +
-      `■ 品目: ${submitted.item}\n` +
-      `■ 金額: ${formatCurrency(submitted.amount)}\n` +
-      (submitted.reason ? `■ 理由: ${submitted.reason}\n` : '') +
-      `\nアプリで確認・決裁をお願いします。`
-    );
-    return `mailto:${otherUser.email}?subject=${subject}&body=${body}`;
-  })() : '';
 
   return (
     <div className="max-w-lg mx-auto px-4 py-6">
@@ -92,9 +79,9 @@ export default function ApplicationScreen({ currentUser, settings, onSubmit, ini
             </div>
           </div>
           {otherUser.email && (
-            <a href={mailtoLink} className="btn-primary block text-center mb-3">
-              📧 {otherUser.name}にメールを送る
-            </a>
+            <p className="text-sm text-green-600 bg-green-50 rounded-xl p-3 mb-3">
+              📧 {otherUser.name}に自動でメールを送りました
+            </p>
           )}
           <button onClick={() => setSubmitted(null)} className="btn-secondary w-full">
             続けて申請する

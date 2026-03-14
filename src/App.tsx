@@ -8,6 +8,7 @@ import {
   subscribeSettings,
   subscribeApplications,
 } from './utils/storage';
+import { sendApplicationEmail, sendDecisionEmail } from './utils/email';
 import HomeScreen from './components/HomeScreen';
 import ApplicationScreen from './components/ApplicationScreen';
 import ApprovalScreen from './components/ApprovalScreen';
@@ -32,6 +33,7 @@ export default function App() {
       setLoading(false);
     });
     const unsubApps = subscribeApplications(apps => {
+      // onSnapshotの反映（サーバー確定データで上書き）
       setApplications(apps);
     });
     return () => { unsubSettings(); unsubApps(); };
@@ -48,12 +50,20 @@ export default function App() {
   }, []);
 
   const handleSubmitApplication = useCallback((app: Application) => {
+    setApplications(prev => [...prev, app]);
     saveApplication(app);
-  }, []);
+    sendApplicationEmail(app, settings).catch(() => {});
+  }, [settings]);
 
   const handleDecide = useCallback((id: string, status: 'approved' | 'rejected', comment?: string) => {
-    updateApplication(id, { status, comment, decidedAt: new Date().toISOString() });
-  }, []);
+    const decidedAt = new Date().toISOString();
+    setApplications(prev =>
+      prev.map(a => a.id === id ? { ...a, status, comment, decidedAt } : a)
+    );
+    updateApplication(id, { status, comment, decidedAt });
+    const app = applications.find(a => a.id === id);
+    if (app) sendDecisionEmail(app, status, comment, settings).catch(() => {});
+  }, [applications, settings]);
 
   const handleReapply = useCallback((app: Application) => {
     setReapplyValues({ item: app.item, amount: app.amount, reason: app.reason, reapplyFromId: app.id });

@@ -34,7 +34,6 @@ export default function ApprovalScreen({ currentUser, settings, applications, on
   );
 
   const otherUser = currentUser === 'A' ? settings.userB : settings.userA;
-  const selfUser = currentUser === 'A' ? settings.userA : settings.userB;
 
   const finalComment = selectedReason === 'その他'
     ? customComment.trim()
@@ -51,18 +50,6 @@ export default function ApprovalScreen({ currentUser, settings, applications, on
     setToast(deciding.action === 'approved' ? '✅ 承認しました' : '❌ 否決しました');
   };
 
-  const mailtoLink = decided ? (() => {
-    const isApproved = decided.status === 'approved';
-    const subject = encodeURIComponent(`【稟議${isApproved ? '承認' : '否決'}】${decided.app.item}`);
-    const body = encodeURIComponent(
-      `${selfUser.name}が稟議を${isApproved ? '承認' : '否決'}しました。\n\n` +
-      `■ 品目: ${decided.app.item}\n` +
-      `■ 金額: ${formatCurrency(decided.app.amount)}\n` +
-      `■ 結果: ${isApproved ? '✅ 承認' : '❌ 否決'}\n` +
-      (decided.comment ? `■ 理由: ${decided.comment}\n` : '')
-    );
-    return `mailto:${otherUser.email}?subject=${subject}&body=${body}`;
-  })() : '';
 
   if (decided) {
     return (
@@ -90,9 +77,9 @@ export default function ApprovalScreen({ currentUser, settings, applications, on
             )}
           </div>
           {otherUser.email && (
-            <a href={mailtoLink} className="btn-primary block text-center mb-3">
-              📧 {otherUser.name}にメールを送る
-            </a>
+            <p className="text-sm text-green-600 bg-green-50 rounded-xl p-3 mb-3">
+              📧 {otherUser.name}に自動でメールを送りました
+            </p>
           )}
           <button onClick={() => setDecided(null)} className="btn-secondary w-full">
             決裁一覧に戻る
