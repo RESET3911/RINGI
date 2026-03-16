@@ -5,6 +5,7 @@ import {
   saveSettings,
   saveApplication,
   updateApplication,
+  cancelApplication,
   subscribeSettings,
   subscribeApplications,
 } from './utils/storage';
@@ -63,6 +64,15 @@ export default function App() {
     updateApplication(id, { status, comment, decidedAt });
     const app = applications.find(a => a.id === id);
     if (app) sendDecisionEmail(app, status, comment, settings).catch(() => {});
+  }, [applications, settings]);
+
+  const handleCancel = useCallback((id: string) => {
+    setApplications(prev =>
+      prev.map(a => a.id === id ? { ...a, status: 'cancelled', decidedAt: new Date().toISOString() } : a)
+    );
+    cancelApplication(id);
+    const app = applications.find(a => a.id === id);
+    if (app) sendDecisionEmail(app, 'cancelled', undefined, settings).catch(() => {});
   }, [applications, settings]);
 
   const handleReapply = useCallback((app: Application) => {
@@ -146,7 +156,8 @@ export default function App() {
             settings={settings}
             applications={applications}
             currentUser={currentUser}
-            onReapply={app => { handleReapply(app); }}
+            onReapply={handleReapply}
+            onCancel={handleCancel}
           />
         )}
         {screen === 'settings' && (

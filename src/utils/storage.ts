@@ -49,6 +49,13 @@ export function subscribeApplications(
   });
 }
 
+export async function cancelApplication(id: string): Promise<void> {
+  await updateDoc(doc(db, 'applications', id), {
+    status: 'cancelled',
+    decidedAt: new Date().toISOString(),
+  });
+}
+
 export function isSettingsComplete(settings: Settings): boolean {
   return settings.monthlyIncome > 0 || settings.fixedCosts.length > 0;
 }

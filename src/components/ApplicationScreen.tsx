@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { User, Settings, Application } from '../types';
-import { calcAlert } from '../utils/alert';
+import { calcAlert, formatCurrency } from '../utils/alert';
 import AlertBadge from './AlertBadge';
 import Toast from './Toast';
 import ConfirmModal from './ConfirmModal';

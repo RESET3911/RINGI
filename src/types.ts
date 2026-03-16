@@ -17,7 +17,7 @@ export type Application = {
   item: string;
   amount: number;
   reason?: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled';
   comment?: string;
   createdAt: string;
   decidedAt?: string;

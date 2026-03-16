@@ -1,30 +1,35 @@
 import { useState } from 'react';
 import { Application, Settings, User } from '../types';
 import { formatCurrency } from '../utils/alert';
+import ConfirmModal from './ConfirmModal';
 
-type Filter = 'all' | 'pending' | 'approved' | 'rejected';
+type Filter = 'all' | 'pending' | 'approved' | 'rejected' | 'cancelled';
 
 type Props = {
   settings: Settings;
   applications: Application[];
   currentUser: User;
   onReapply: (app: Application) => void;
+  onCancel: (id: string) => void;
 };
 
 const statusLabel: Record<Application['status'], string> = {
   pending: '申請中',
   approved: '承認',
   rejected: '否決',
+  cancelled: '取り消し',
 };
 
 const statusColor: Record<Application['status'], string> = {
   pending: 'bg-blue-100 text-blue-700',
   approved: 'bg-green-100 text-green-700',
   rejected: 'bg-red-100 text-red-700',
+  cancelled: 'bg-gray-100 text-gray-500',
 };
 
-export default function HistoryScreen({ settings, applications, currentUser, onReapply }: Props) {
+export default function HistoryScreen({ settings, applications, currentUser, onReapply, onCancel }: Props) {
   const [filter, setFilter] = useState<Filter>('all');
+  const [cancelTarget, setCancelTarget] = useState<Application | null>(null);
 
   const filtered = applications
     .filter(a => filter === 'all' || a.status === filter)
@@ -50,6 +55,7 @@ export default function HistoryScreen({ settings, applications, currentUser, onR
     { key: 'pending', label: '申請中' },
     { key: 'approved', label: '承認' },
     { key: 'rejected', label: '否決' },
+    { key: 'cancelled', label: '取消' },
   ];
 
   return (
@@ -150,18 +156,38 @@ export default function HistoryScreen({ settings, applications, currentUser, onR
                   {new Date(app.createdAt).toLocaleDateString('ja-JP', { year: 'numeric', month: 'short', day: 'numeric' })}
                   {app.decidedAt && ` → ${new Date(app.decidedAt).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' })}`}
                 </p>
-                {app.status === 'rejected' && app.applicant === currentUser && (
-                  <button
-                    onClick={() => onReapply(app)}
-                    className="text-xs bg-primary-100 text-primary-600 font-semibold px-3 py-1.5 rounded-full active:bg-primary-200"
-                  >
-                    再申請する
-                  </button>
-                )}
+                <div className="flex gap-2">
+                  {app.status === 'pending' && app.applicant === currentUser && (
+                    <button
+                      onClick={() => setCancelTarget(app)}
+                      className="text-xs bg-gray-100 text-gray-600 font-semibold px-3 py-1.5 rounded-full active:bg-gray-200"
+                    >
+                      取り消す
+                    </button>
+                  )}
+                  {app.status === 'rejected' && app.applicant === currentUser && (
+                    <button
+                      onClick={() => onReapply(app)}
+                      className="text-xs bg-primary-100 text-primary-600 font-semibold px-3 py-1.5 rounded-full active:bg-primary-200"
+                    >
+                      再申請する
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           ))}
         </div>
+      )}
+      {cancelTarget && (
+        <ConfirmModal
+          title="申請の取り消し"
+          message={`「${cancelTarget.item}」の申請を取り消しますか？`}
+          confirmLabel="取り消す"
+          isDanger
+          onConfirm={() => { onCancel(cancelTarget.id); setCancelTarget(null); }}
+          onCancel={() => setCancelTarget(null)}
+        />
       )}
     </div>
   );
