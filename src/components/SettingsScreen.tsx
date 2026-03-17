@@ -68,10 +68,15 @@ export default function SettingsScreen({ settings, onSave }: Props) {
               const topic = form.ntfyTopic.trim();
               if (!topic) return;
               try {
-                const res = await fetch(`https://ntfy.sh/${topic}`, {
+                const res = await fetch('https://ntfy.sh', {
                   method: 'POST',
-                  headers: { 'Title': encodeURIComponent('RINGIテスト通知'), 'Content-Type': 'text/plain; charset=utf-8' },
-                  body: 'テスト通知が届いたら設定完了です！',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    topic,
+                    title: '🔔 RINGIテスト通知',
+                    message: 'テスト通知が届いたら設定完了です！',
+                    priority: 3,
+                  }),
                 });
                 if (res.ok) setToast('✅ テスト通知を送信しました');
                 else setToast(`❌ 送信失敗: ${res.status}`);

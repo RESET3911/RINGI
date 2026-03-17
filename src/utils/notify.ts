@@ -3,15 +3,16 @@ import { formatCurrency } from './alert';
 
 async function push(topic: string, title: string, body: string): Promise<void> {
   if (!topic.trim()) return;
-  await fetch(`https://ntfy.sh/${topic.trim()}`, {
+  await fetch('https://ntfy.sh', {
     method: 'POST',
-    headers: {
-      'Title': encodeURIComponent(title),
-      'Priority': 'default',
-      'Tags': 'bell',
-      'Content-Type': 'text/plain; charset=utf-8',
-    },
-    body,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      topic: topic.trim(),
+      title,
+      message: body,
+      priority: 3,
+      tags: ['bell'],
+    }),
   });
 }
 
