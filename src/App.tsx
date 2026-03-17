@@ -10,6 +10,7 @@ import {
   subscribeApplications,
 } from './utils/storage';
 import { notifyApplication, notifyDecision } from './utils/notify';
+import Toast from './components/Toast';
 import HomeScreen from './components/HomeScreen';
 import ApplicationScreen from './components/ApplicationScreen';
 import ApprovalScreen from './components/ApprovalScreen';
@@ -27,16 +28,17 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>('home');
   const [loading, setLoading] = useState(true);
   const [reapplyValues, setReapplyValues] = useState<ReapplyValues | undefined>(undefined);
+  const [errorToast, setErrorToast] = useState<string | null>(null);
 
   useEffect(() => {
-    const unsubSettings = subscribeSettings(s => {
-      setSettings(s);
-      setLoading(false);
-    });
-    const unsubApps = subscribeApplications(apps => {
-      // onSnapshotの反映（サーバー確定データで上書き）
-      setApplications(apps);
-    });
+    const unsubSettings = subscribeSettings(
+      s => { setSettings(s); setLoading(false); },
+      () => { setLoading(false); setErrorToast('DB接続エラー。Firebaseのルールを確認してください。'); }
+    );
+    const unsubApps = subscribeApplications(
+      apps => setApplications(apps),
+      () => setErrorToast('データ取得エラー。Firebaseのルールを確認してください。')
+    );
     return () => { unsubSettings(); unsubApps(); };
   }, []);
 
@@ -90,6 +92,18 @@ export default function App() {
     { key: 'history', label: '履歴', icon: '📋' },
     { key: 'settings', label: '設定', icon: '⚙️' },
   ];
+
+  if (errorToast && loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-primary-50 to-white p-6">
+        <div className="card text-center">
+          <div className="text-4xl mb-3">⚠️</div>
+          <p className="font-bold text-gray-900 mb-2">接続エラー</p>
+          <p className="text-sm text-gray-500">Firebaseのセキュリティルールを確認してください。</p>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -167,6 +181,8 @@ export default function App() {
           />
         )}
       </div>
+
+      {errorToast && <Toast message={errorToast} type="error" onClose={() => setErrorToast(null)} />}
 
       {/* Bottom navigation */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-10">

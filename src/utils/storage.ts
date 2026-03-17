@@ -30,24 +30,34 @@ export async function updateApplication(
 }
 
 export function subscribeSettings(
-  callback: (settings: Settings) => void
+  callback: (settings: Settings) => void,
+  onError?: () => void
 ): () => void {
-  return onSnapshot(doc(db, 'ringi', 'settings'), snap => {
-    if (snap.exists()) {
-      callback({ ...defaultSettings, ...(snap.data() as Settings) });
-    } else {
-      callback({ ...defaultSettings });
-    }
-  });
+  return onSnapshot(
+    doc(db, 'ringi', 'settings'),
+    snap => {
+      if (snap.exists()) {
+        callback({ ...defaultSettings, ...(snap.data() as Settings) });
+      } else {
+        callback({ ...defaultSettings });
+      }
+    },
+    () => onError?.()
+  );
 }
 
 export function subscribeApplications(
-  callback: (apps: Application[]) => void
+  callback: (apps: Application[]) => void,
+  onError?: () => void
 ): () => void {
-  return onSnapshot(collection(db, 'applications'), snap => {
-    const apps = snap.docs.map(d => d.data() as Application);
-    callback(apps);
-  });
+  return onSnapshot(
+    collection(db, 'applications'),
+    snap => {
+      const apps = snap.docs.map(d => d.data() as Application);
+      callback(apps);
+    },
+    () => onError?.()
+  );
 }
 
 export async function cancelApplication(id: string): Promise<void> {
