@@ -54,7 +54,7 @@ export default function App() {
 
   const handleSubmitApplication = useCallback((app: Application) => {
     setApplications(prev => [...prev, app]);
-    saveApplication(app);
+    saveApplication(app).catch(() => setErrorToast('申請の保存に失敗しました'));
     notifyApplication(app, settings).catch(() => {});
   }, [settings]);
 

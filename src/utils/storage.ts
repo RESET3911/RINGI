@@ -18,15 +18,22 @@ export async function saveSettings(settings: Settings): Promise<void> {
   await setDoc(doc(db, 'ringi', 'settings'), settings);
 }
 
+// Firestoreはundefinedを受け付けないため除去する
+function stripUndefined<T extends object>(obj: T): Partial<T> {
+  return Object.fromEntries(
+    Object.entries(obj).filter(([, v]) => v !== undefined)
+  ) as Partial<T>;
+}
+
 export async function saveApplication(app: Application): Promise<void> {
-  await setDoc(doc(db, 'applications', app.id), app);
+  await setDoc(doc(db, 'applications', app.id), stripUndefined(app));
 }
 
 export async function updateApplication(
   id: string,
   data: Partial<Application>
 ): Promise<void> {
-  await updateDoc(doc(db, 'applications', id), data);
+  await updateDoc(doc(db, 'applications', id), stripUndefined(data));
 }
 
 export function subscribeSettings(
