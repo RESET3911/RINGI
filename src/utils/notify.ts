@@ -6,7 +6,7 @@ async function push(topic: string, title: string, body: string): Promise<void> {
   await fetch(`https://ntfy.sh/${topic.trim()}`, {
     method: 'POST',
     headers: {
-      'Title': title,
+      'Title': encodeURIComponent(title),
       'Priority': 'default',
       'Tags': 'bell',
       'Content-Type': 'text/plain; charset=utf-8',

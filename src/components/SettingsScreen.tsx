@@ -70,7 +70,7 @@ export default function SettingsScreen({ settings, onSave }: Props) {
               try {
                 const res = await fetch(`https://ntfy.sh/${topic}`, {
                   method: 'POST',
-                  headers: { 'Title': 'RINGIテスト通知', 'Content-Type': 'text/plain' },
+                  headers: { 'Title': encodeURIComponent('RINGIテスト通知'), 'Content-Type': 'text/plain; charset=utf-8' },
                   body: 'テスト通知が届いたら設定完了です！',
                 });
                 if (res.ok) setToast('✅ テスト通知を送信しました');
