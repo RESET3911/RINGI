@@ -58,13 +58,36 @@ export default function SettingsScreen({ settings, onSave }: Props) {
             type="text"
             value={form.ntfyTopic}
             onChange={e => setForm(f => ({ ...f, ntfyTopic: e.target.value }))}
-            className="input-field"
+            className="input-field mb-3"
             placeholder="例: ringi-yamada2025"
           />
+          <button
+            type="button"
+            disabled={!form.ntfyTopic.trim()}
+            onClick={async () => {
+              const topic = form.ntfyTopic.trim();
+              if (!topic) return;
+              try {
+                const res = await fetch(`https://ntfy.sh/${topic}`, {
+                  method: 'POST',
+                  headers: { 'Title': 'RINGIテスト通知', 'Content-Type': 'text/plain' },
+                  body: 'テスト通知が届いたら設定完了です！',
+                });
+                if (res.ok) setToast('✅ テスト通知を送信しました');
+                else setToast(`❌ 送信失敗: ${res.status}`);
+              } catch (e) {
+                setToast(`❌ エラー: ${String(e)}`);
+              }
+            }}
+            className="btn-secondary w-full text-sm"
+          >
+            🔔 テスト通知を送る
+          </button>
           <p className="text-xs text-gray-400 mt-2">
             ① iPhoneに「ntfy」アプリをインストール →
             ② アプリでトピック名を購読 →
-            ③ ここに同じトピック名を入力
+            ③ ここに同じトピック名を入力 →
+            ④「テスト通知を送る」で確認
           </p>
         </div>
 

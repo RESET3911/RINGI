@@ -9,6 +9,7 @@ async function push(topic: string, title: string, body: string): Promise<void> {
       'Title': title,
       'Priority': 'default',
       'Tags': 'bell',
+      'Content-Type': 'text/plain; charset=utf-8',
     },
     body,
   });
