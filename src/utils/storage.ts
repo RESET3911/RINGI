@@ -11,6 +11,7 @@ export const defaultSettings: Settings = {
   alertThresholdWarning: 0.30,
   alertThresholdDanger: 0.50,
   appIcon: '💑',
+  ntfyTopic: '',
 };
 
 export async function saveSettings(settings: Settings): Promise<void> {

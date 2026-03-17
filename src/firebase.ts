@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
+import { initializeFirestore, persistentLocalCache, persistentSingleTabManager } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: "AIzaSyD46e6p6Kv_gLkEDtP1YIsaj8eqh_UBtQ4",
@@ -12,9 +12,9 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
-// ローカルキャッシュ有効化：書き込みを即座にローカルに反映、バックグラウンドでサーバー同期
+// iOS Safari対応：SingleTabManagerを使用
 export const db = initializeFirestore(app, {
   localCache: persistentLocalCache({
-    tabManager: persistentMultipleTabManager(),
+    tabManager: persistentSingleTabManager({ forceOwnership: true }),
   }),
 });

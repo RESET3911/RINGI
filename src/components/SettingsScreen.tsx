@@ -47,6 +47,27 @@ export default function SettingsScreen({ settings, onSave }: Props) {
       <h2 className="text-xl font-bold text-gray-900 mb-6">⚙️ 設定</h2>
 
       <div className="space-y-6">
+        {/* Notification */}
+        <div className="card">
+          <h3 className="font-bold text-gray-900 mb-1">🔔 プッシュ通知（ntfy）</h3>
+          <p className="text-xs text-gray-500 mb-3">
+            ntfyアプリで申請・決裁を自動通知します。2人で同じトピック名を設定してください。
+          </p>
+          <label className="label">トピック名（2人共通・秘密の名前）</label>
+          <input
+            type="text"
+            value={form.ntfyTopic}
+            onChange={e => setForm(f => ({ ...f, ntfyTopic: e.target.value }))}
+            className="input-field"
+            placeholder="例: ringi-yamada2025"
+          />
+          <p className="text-xs text-gray-400 mt-2">
+            ① iPhoneに「ntfy」アプリをインストール →
+            ② アプリでトピック名を購読 →
+            ③ ここに同じトピック名を入力
+          </p>
+        </div>
+
         {/* App icon */}
         <div className="card">
           <h3 className="font-bold text-gray-900 mb-3">🎨 アプリアイコン</h3>

@@ -76,9 +76,9 @@ export default function ApprovalScreen({ currentUser, settings, applications, on
               </div>
             )}
           </div>
-          {otherUser.email && (
+          {settings.ntfyTopic && (
             <p className="text-sm text-green-600 bg-green-50 rounded-xl p-3 mb-3">
-              📧 {otherUser.name}に自動でメールを送りました
+              🔔 {otherUser.name}にプッシュ通知を送りました
             </p>
           )}
           <button onClick={() => setDecided(null)} className="btn-secondary w-full">

@@ -9,7 +9,7 @@ import {
   subscribeSettings,
   subscribeApplications,
 } from './utils/storage';
-import { sendApplicationEmail, sendDecisionEmail } from './utils/email';
+import { notifyApplication, notifyDecision } from './utils/notify';
 import HomeScreen from './components/HomeScreen';
 import ApplicationScreen from './components/ApplicationScreen';
 import ApprovalScreen from './components/ApprovalScreen';
@@ -53,7 +53,7 @@ export default function App() {
   const handleSubmitApplication = useCallback((app: Application) => {
     setApplications(prev => [...prev, app]);
     saveApplication(app);
-    sendApplicationEmail(app, settings).catch(() => {});
+    notifyApplication(app, settings).catch(() => {});
   }, [settings]);
 
   const handleDecide = useCallback((id: string, status: 'approved' | 'rejected', comment?: string) => {
@@ -63,7 +63,7 @@ export default function App() {
     );
     updateApplication(id, { status, comment, decidedAt });
     const app = applications.find(a => a.id === id);
-    if (app) sendDecisionEmail(app, status, comment, settings).catch(() => {});
+    if (app) notifyDecision(app, status, comment, settings).catch(() => {});
   }, [applications, settings]);
 
   const handleCancel = useCallback((id: string) => {
@@ -72,7 +72,7 @@ export default function App() {
     );
     cancelApplication(id);
     const app = applications.find(a => a.id === id);
-    if (app) sendDecisionEmail(app, 'cancelled', undefined, settings).catch(() => {});
+    if (app) notifyDecision(app, 'cancelled', undefined, settings).catch(() => {});
   }, [applications, settings]);
 
   const handleReapply = useCallback((app: Application) => {

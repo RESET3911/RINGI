@@ -78,9 +78,9 @@ export default function ApplicationScreen({ currentUser, settings, onSubmit, ini
               <span className="font-medium">{formatCurrency(submitted.amount)}</span>
             </div>
           </div>
-          {otherUser.email && (
+          {settings.ntfyTopic && (
             <p className="text-sm text-green-600 bg-green-50 rounded-xl p-3 mb-3">
-              📧 {otherUser.name}に自動でメールを送りました
+              🔔 {otherUser.name}にプッシュ通知を送りました
             </p>
           )}
           <button onClick={() => setSubmitted(null)} className="btn-secondary w-full">

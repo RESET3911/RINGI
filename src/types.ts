@@ -9,6 +9,7 @@ export type Settings = {
   alertThresholdWarning: number;
   alertThresholdDanger: number;
   appIcon: string;
+  ntfyTopic: string;
 };
 
 export type Application = {
