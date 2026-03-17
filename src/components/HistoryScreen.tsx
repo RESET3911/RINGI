@@ -185,7 +185,11 @@ export default function HistoryScreen({ settings, applications, currentUser, onR
           message={`「${cancelTarget.item}」の申請を取り消しますか？`}
           confirmLabel="取り消す"
           isDanger
-          onConfirm={() => { onCancel(cancelTarget.id); setCancelTarget(null); }}
+          onConfirm={() => {
+            const id = cancelTarget.id;
+            setCancelTarget(null);
+            onCancel(id);
+          }}
           onCancel={() => setCancelTarget(null)}
         />
       )}

@@ -7,6 +7,10 @@ const TEMPLATE_APPLY = 'template_y6araoi';
 const TEMPLATE_DECISION = 'template_jyhvu1t';
 const PUBLIC_KEY = 'O6hr4eVLu7EjvHbEq';
 
+async function send(template: string, to: string, params: Record<string, string>): Promise<void> {
+  await emailjs.send(SERVICE_ID, template, { to_email: to, ...params }, PUBLIC_KEY);
+}
+
 export async function sendApplicationEmail(app: Application, settings: Settings): Promise<void> {
   const applicant = app.applicant === 'A' ? settings.userA : settings.userB;
   const receiver = app.applicant === 'A' ? settings.userB : settings.userA;
@@ -18,21 +22,10 @@ export async function sendApplicationEmail(app: Application, settings: Settings)
     reason: app.reason ?? 'なし',
   };
 
-  // 相手に申請通知
-  if (receiver.email) {
-    await emailjs.send(SERVICE_ID, TEMPLATE_APPLY, {
-      ...params,
-      to_email: receiver.email,
-    }, PUBLIC_KEY);
-  }
-
-  // 申請者自身にも確認メール
-  if (applicant.email) {
-    await emailjs.send(SERVICE_ID, TEMPLATE_APPLY, {
-      ...params,
-      to_email: applicant.email,
-    }, PUBLIC_KEY);
-  }
+  const sends: Promise<void>[] = [];
+  if (receiver.email) sends.push(send(TEMPLATE_APPLY, receiver.email, params));
+  if (applicant.email) sends.push(send(TEMPLATE_APPLY, applicant.email, params));
+  await Promise.allSettled(sends);
 }
 
 export async function sendDecisionEmail(
@@ -57,24 +50,8 @@ export async function sendDecisionEmail(
     comment: comment ?? 'なし',
   };
 
-  // 申請者に通知（取り消し時も自分に届く）
-  if (applicant.email) {
-    await emailjs.send(SERVICE_ID, TEMPLATE_DECISION, {
-      ...params,
-      to_email: applicant.email,
-    }, PUBLIC_KEY);
-  }
-
-  // 決裁者にも通知（取り消し時は相手に通知）
-  if (status !== 'cancelled' && decider.email) {
-    await emailjs.send(SERVICE_ID, TEMPLATE_DECISION, {
-      ...params,
-      to_email: decider.email,
-    }, PUBLIC_KEY);
-  } else if (status === 'cancelled' && decider.email) {
-    await emailjs.send(SERVICE_ID, TEMPLATE_DECISION, {
-      ...params,
-      to_email: decider.email,
-    }, PUBLIC_KEY);
-  }
+  const sends: Promise<void>[] = [];
+  if (applicant.email) sends.push(send(TEMPLATE_DECISION, applicant.email, params));
+  if (decider.email) sends.push(send(TEMPLATE_DECISION, decider.email, params));
+  await Promise.allSettled(sends);
 }
