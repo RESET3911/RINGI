@@ -10,6 +10,7 @@ import {
   subscribeApplications,
 } from './utils/storage';
 import { notifyApplication, notifyDecision } from './utils/notify';
+import { pushToCashflow } from './utils/cashflow';
 import Toast from './components/Toast';
 import HomeScreen from './components/HomeScreen';
 import ApplicationScreen from './components/ApplicationScreen';
@@ -65,7 +66,16 @@ export default function App() {
     );
     updateApplication(id, { status, comment, decidedAt });
     const app = applications.find(a => a.id === id);
-    if (app) notifyDecision(app, status, comment, settings).catch(() => {});
+    if (app) {
+      notifyDecision(app, status, comment, settings).catch(() => {});
+      if (status === 'approved' && app.cashflowCategory && app.cashflowCategory !== 'none') {
+        pushToCashflow(
+          { ...app, decidedAt },
+          app.cashflowCategory,
+          app.cashflowSubCategory ?? 'misc',
+        ).catch(() => {});
+      }
+    }
   }, [applications, settings]);
 
   const handleCancel = useCallback((id: string) => {
