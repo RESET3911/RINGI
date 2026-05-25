@@ -1,7 +1,8 @@
 import { useState, useCallback } from 'react';
 import type { User, Settings, Application, CashflowCategory, BusinessExpenseCategory } from '../types';
 import { BUSINESS_EXPENSE_LABELS } from '../types';
-import { calcAlert, formatCurrency } from '../utils/alert';
+import { calcAlert, calcSurplus, formatCurrency } from '../utils/alert';
+import { useCashflowBalance } from '../utils/cashflow';
 import AlertBadge from './AlertBadge';
 import Toast from './Toast';
 import ConfirmModal from './ConfirmModal';
@@ -27,8 +28,10 @@ export default function ApplicationScreen({ currentUser, settings, onSubmit, ini
   const [submitted, setSubmitted] = useState<Application | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
+  const cashflow = useCashflowBalance();
   const numAmount = parseFloat(amount) || 0;
-  const alert = numAmount > 0 ? calcAlert(numAmount, settings) : null;
+  const surplus = cashflow ? cashflow.balance : calcSurplus(settings);
+  const alert = numAmount > 0 ? calcAlert(numAmount, surplus, settings) : null;
   const isReapply = !!initialValues?.reapplyFromId;
 
   const handleSubmit = (e: React.FormEvent) => {

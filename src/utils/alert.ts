@@ -5,8 +5,7 @@ export function calcSurplus(settings: Settings): number {
   return settings.monthlyIncome + settings.extraIncome - totalFixed;
 }
 
-export function calcAlert(amount: number, settings: Settings): AlertInfo {
-  const surplus = calcSurplus(settings);
+export function calcAlert(amount: number, surplus: number, settings: Settings): AlertInfo {
   if (surplus <= 0) {
     return {
       level: 'danger',

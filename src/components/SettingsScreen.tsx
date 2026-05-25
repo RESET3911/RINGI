@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Settings } from '../types';
 import { formatCurrency } from '../utils/alert';
+import { useCashflowBalance } from '../utils/cashflow';
 import Toast from './Toast';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -16,6 +17,8 @@ export default function SettingsScreen({ settings, onSave }: Props) {
   const [toast, setToast] = useState<string | null>(null);
   const [newCostLabel, setNewCostLabel] = useState('');
   const [newCostAmount, setNewCostAmount] = useState('');
+  const cashflow = useCashflowBalance();
+  const hasCashflow = cashflow && (cashflow.monthlyIncome > 0 || cashflow.expenseItems.length > 0);
 
   const handleSave = () => {
     onSave(form);
@@ -168,97 +171,166 @@ export default function SettingsScreen({ settings, onSave }: Props) {
 
         {/* Income Settings */}
         <div className="card">
-          <h3 className="font-bold text-gray-900 mb-4">💰 収支設定</h3>
-          <div className="space-y-3">
-            <div>
-              <label className="label">月収合計（2人合算）</label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">¥</span>
-                <input
-                  type="number"
-                  value={form.monthlyIncome || ''}
-                  onChange={e => setForm(f => ({ ...f, monthlyIncome: parseFloat(e.target.value) || 0 }))}
-                  className="input-field pl-8"
-                  placeholder="0"
-                  min="0"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="label">来月の臨時収入（任意）</label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">¥</span>
-                <input
-                  type="number"
-                  value={form.extraIncome || ''}
-                  onChange={e => setForm(f => ({ ...f, extraIncome: parseFloat(e.target.value) || 0 }))}
-                  className="input-field pl-8"
-                  placeholder="0"
-                  min="0"
-                />
-              </div>
-            </div>
+          <div className="flex items-center gap-2 mb-4">
+            <h3 className="font-bold text-gray-900">💰 収支設定</h3>
+            {hasCashflow && (
+              <span className="text-xs bg-violet-100 text-violet-700 font-semibold px-2 py-0.5 rounded-full">
+                CASHFLOW連携中
+              </span>
+            )}
           </div>
 
-          <div className="mt-4">
-            <label className="label">固定費リスト</label>
-            {form.fixedCosts.length > 0 && (
-              <div className="space-y-2 mb-3">
-                {form.fixedCosts.map(cost => (
-                  <div key={cost.id} className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2">
-                    <span className="flex-1 text-sm">{cost.label}</span>
-                    <span className="text-sm font-medium text-gray-700">{formatCurrency(cost.amount)}</span>
-                    <button
-                      onClick={() => removeFixedCost(cost.id)}
-                      className="text-red-400 p-1 min-h-[32px] min-w-[32px] flex items-center justify-center"
-                    >
-                      ✕
-                    </button>
+          {/* CASHFLOW連携パネル */}
+          {hasCashflow && cashflow ? (
+            <div className="space-y-4">
+              {/* 収入 */}
+              <div className="bg-emerald-50 rounded-xl p-3">
+                <p className="text-xs font-semibold text-emerald-700 mb-2">収入（CASHFLOWから自動取得）</p>
+                <div className="space-y-1.5">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">固定収入</span>
+                    <span className="font-medium text-gray-900">{formatCurrency(cashflow.fixedIncome)}</span>
                   </div>
-                ))}
-                <div className="flex justify-between text-sm font-semibold text-gray-700 px-3">
-                  <span>合計</span>
-                  <span>{formatCurrency(totalFixed)}</span>
+                  {cashflow.variableIncome > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">臨時収入（今月）</span>
+                      <span className="font-medium text-emerald-700">{formatCurrency(cashflow.variableIncome)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-sm font-semibold border-t border-emerald-200 pt-1.5 mt-1.5">
+                    <span className="text-gray-700">合計</span>
+                    <span className="text-emerald-700">{formatCurrency(cashflow.monthlyIncome)}</span>
+                  </div>
                 </div>
               </div>
-            )}
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={newCostLabel}
-                onChange={e => setNewCostLabel(e.target.value)}
-                placeholder="例: 家賃"
-                className="input-field flex-1"
-              />
-              <div className="relative w-28">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">¥</span>
-                <input
-                  type="number"
-                  value={newCostAmount}
-                  onChange={e => setNewCostAmount(e.target.value)}
-                  placeholder="0"
-                  min="0"
-                  className="input-field pl-7 w-full"
-                />
-              </div>
-              <button
-                type="button"
-                onClick={addFixedCost}
-                disabled={!newCostLabel.trim() || !newCostAmount}
-                className="btn-primary px-4 py-2 rounded-xl text-sm"
-              >
-                追加
-              </button>
-            </div>
-          </div>
 
-          {(form.monthlyIncome > 0 || totalFixed > 0) && (
-            <div className="mt-4 bg-primary-50 rounded-xl p-3">
-              <p className="text-xs text-gray-500 mb-1">余剰資金プレビュー</p>
-              <p className={`text-xl font-bold ${surplus < 0 ? 'text-red-500' : 'text-primary-500'}`}>
-                {formatCurrency(surplus)}
-              </p>
+              {/* 固定費リスト */}
+              <div className="bg-rose-50 rounded-xl p-3">
+                <p className="text-xs font-semibold text-rose-700 mb-2">固定費リスト（CASHFLOWから自動取得）</p>
+                {cashflow.expenseItems.length > 0 ? (
+                  <div className="space-y-1.5">
+                    {cashflow.expenseItems.map(item => (
+                      <div key={item.id} className="flex justify-between text-sm">
+                        <span className="text-gray-600">{item.name}</span>
+                        <span className="font-medium text-gray-900">{formatCurrency(item.amount)}</span>
+                      </div>
+                    ))}
+                    <div className="flex justify-between text-sm font-semibold border-t border-rose-200 pt-1.5 mt-1.5">
+                      <span className="text-gray-700">合計</span>
+                      <span className="text-rose-700">{formatCurrency(cashflow.monthlyExpense)}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-400">固定費が登録されていません</p>
+                )}
+              </div>
+
+              {/* 余剰資金プレビュー */}
+              <div className="bg-primary-50 rounded-xl p-3">
+                <p className="text-xs text-gray-500 mb-1">月次余剰資金（CASHFLOWベース）</p>
+                <p className={`text-xl font-bold ${cashflow.balance < 0 ? 'text-red-500' : 'text-primary-500'}`}>
+                  {formatCurrency(cashflow.balance)}
+                </p>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  CASHFLOWアプリで収入・固定費を管理してください
+                </p>
+              </div>
             </div>
+          ) : (
+            /* CASHFLOWデータがない場合は手動設定 */
+            <>
+              <div className="space-y-3">
+                <div>
+                  <label className="label">月収合計（2人合算）</label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">¥</span>
+                    <input
+                      type="number"
+                      value={form.monthlyIncome || ''}
+                      onChange={e => setForm(f => ({ ...f, monthlyIncome: parseFloat(e.target.value) || 0 }))}
+                      className="input-field pl-8"
+                      placeholder="0"
+                      min="0"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="label">来月の臨時収入（任意）</label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">¥</span>
+                    <input
+                      type="number"
+                      value={form.extraIncome || ''}
+                      onChange={e => setForm(f => ({ ...f, extraIncome: parseFloat(e.target.value) || 0 }))}
+                      className="input-field pl-8"
+                      placeholder="0"
+                      min="0"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <label className="label">固定費リスト</label>
+                {form.fixedCosts.length > 0 && (
+                  <div className="space-y-2 mb-3">
+                    {form.fixedCosts.map(cost => (
+                      <div key={cost.id} className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2">
+                        <span className="flex-1 text-sm">{cost.label}</span>
+                        <span className="text-sm font-medium text-gray-700">{formatCurrency(cost.amount)}</span>
+                        <button
+                          onClick={() => removeFixedCost(cost.id)}
+                          className="text-red-400 p-1 min-h-[32px] min-w-[32px] flex items-center justify-center"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                    <div className="flex justify-between text-sm font-semibold text-gray-700 px-3">
+                      <span>合計</span>
+                      <span>{formatCurrency(totalFixed)}</span>
+                    </div>
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newCostLabel}
+                    onChange={e => setNewCostLabel(e.target.value)}
+                    placeholder="例: 家賃"
+                    className="input-field flex-1"
+                  />
+                  <div className="relative w-28">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">¥</span>
+                    <input
+                      type="number"
+                      value={newCostAmount}
+                      onChange={e => setNewCostAmount(e.target.value)}
+                      placeholder="0"
+                      min="0"
+                      className="input-field pl-7 w-full"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={addFixedCost}
+                    disabled={!newCostLabel.trim() || !newCostAmount}
+                    className="btn-primary px-4 py-2 rounded-xl text-sm"
+                  >
+                    追加
+                  </button>
+                </div>
+              </div>
+
+              {(form.monthlyIncome > 0 || totalFixed > 0) && (
+                <div className="mt-4 bg-primary-50 rounded-xl p-3">
+                  <p className="text-xs text-gray-500 mb-1">余剰資金プレビュー</p>
+                  <p className={`text-xl font-bold ${surplus < 0 ? 'text-red-500' : 'text-primary-500'}`}>
+                    {formatCurrency(surplus)}
+                  </p>
+                </div>
+              )}
+            </>
           )}
         </div>
 

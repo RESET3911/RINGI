@@ -17,38 +17,53 @@ function stripUndefined<T extends object>(obj: T): Partial<T> {
 // ── 予算サマリー購読（案B） ────────────────────────────────────
 
 export interface CashflowSummary {
+  fixedIncome: number;
+  variableIncome: number;
   monthlyIncome: number;
   monthlyExpense: number;
   balance: number;
+  expenseItems: { id: string; name: string; amount: number }[];
 }
+
+type RawIncome = { invoiceDate: string; amount: number; incomeType?: string };
+type RawExpense = { id: string; name: string; isActive: boolean; amount: number };
 
 export function subscribeCashflowSummary(
   callback: (s: CashflowSummary) => void,
 ): () => void {
   const thisYM = new Date().toISOString().substring(0, 7);
 
-  let incomes: { invoiceDate: string; amount: number }[] = [];
-  let expenses: { isActive: boolean; amount: number }[] = [];
+  let incomes: RawIncome[] = [];
+  let expenses: RawExpense[] = [];
 
   const emit = () => {
-    const monthlyIncome = incomes
-      .filter(i => i.invoiceDate.startsWith(thisYM))
+    const thisMonthIncomes = incomes.filter(i => i.invoiceDate.startsWith(thisYM));
+    const fixedIncome = thisMonthIncomes
+      .filter(i => i.incomeType === 'fixed')
       .reduce((s, i) => s + i.amount, 0);
-    const monthlyExpense = expenses
-      .filter(e => e.isActive)
-      .reduce((s, e) => s + e.amount, 0);
-    callback({ monthlyIncome, monthlyExpense, balance: monthlyIncome - monthlyExpense });
+    const variableIncome = thisMonthIncomes
+      .filter(i => i.incomeType !== 'fixed')
+      .reduce((s, i) => s + i.amount, 0);
+    const monthlyIncome = fixedIncome + variableIncome;
+    const activeExpenses = expenses.filter(e => e.isActive);
+    const monthlyExpense = activeExpenses.reduce((s, e) => s + e.amount, 0);
+    const expenseItems = activeExpenses.map(e => ({ id: e.id, name: e.name, amount: e.amount }));
+    callback({
+      fixedIncome, variableIncome, monthlyIncome,
+      monthlyExpense, balance: monthlyIncome - monthlyExpense,
+      expenseItems,
+    });
   };
 
   const q1 = query(col('incomes'), orderBy('invoiceDate', 'desc'));
   const unsub1 = onSnapshot(q1, snap => {
-    incomes = snap.docs.map(d => d.data() as { invoiceDate: string; amount: number });
+    incomes = snap.docs.map(d => d.data() as RawIncome);
     emit();
   }, () => {});
 
   const q2 = query(col('expenses'), orderBy('createdAt', 'asc'));
   const unsub2 = onSnapshot(q2, snap => {
-    expenses = snap.docs.map(d => d.data() as { isActive: boolean; amount: number });
+    expenses = snap.docs.map(d => d.data() as RawExpense);
     emit();
   }, () => {});
 

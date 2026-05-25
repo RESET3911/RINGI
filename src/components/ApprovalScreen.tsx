@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { User, Settings, Application } from '../types';
-import { calcAlert, formatCurrency } from '../utils/alert';
+import { calcAlert, calcSurplus, formatCurrency } from '../utils/alert';
 import AlertBadge from './AlertBadge';
 import Toast from './Toast';
 import ConfirmModal from './ConfirmModal';
@@ -116,7 +116,8 @@ export default function ApprovalScreen({ currentUser, settings, applications, on
       ) : (
         <div className="space-y-4">
           {pending.map(app => {
-            const alert = calcAlert(app.amount, settings);
+            const surplus = cashflow ? cashflow.balance : calcSurplus(settings);
+            const alert = calcAlert(app.amount, surplus, settings);
             const monthlyBalance = cashflow?.balance ?? null;
             return (
               <div key={app.id} className="card">
