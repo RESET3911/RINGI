@@ -25,8 +25,10 @@ export interface CashflowSummary {
   expenseItems: { id: string; name: string; amount: number }[];
 }
 
-type RawIncome = { invoiceDate: string; amount: number; incomeType?: string };
+type RawIncome = { invoiceDate: string; amount: number; incomeType?: string; outsourcingCost?: number };
 type RawExpense = { id: string; name: string; isActive: boolean; amount: number };
+
+const netAmount = (i: RawIncome) => i.amount - (i.outsourcingCost ?? 0);
 
 export function subscribeCashflowSummary(
   callback: (s: CashflowSummary) => void,
@@ -40,10 +42,10 @@ export function subscribeCashflowSummary(
     const thisMonthIncomes = incomes.filter(i => i.invoiceDate.startsWith(thisYM));
     const fixedIncome = thisMonthIncomes
       .filter(i => i.incomeType === 'fixed')
-      .reduce((s, i) => s + i.amount, 0);
+      .reduce((s, i) => s + netAmount(i), 0);
     const variableIncome = thisMonthIncomes
       .filter(i => i.incomeType !== 'fixed')
-      .reduce((s, i) => s + i.amount, 0);
+      .reduce((s, i) => s + netAmount(i), 0);
     const monthlyIncome = fixedIncome + variableIncome;
     const activeExpenses = expenses.filter(e => e.isActive);
     const monthlyExpense = activeExpenses.reduce((s, e) => s + e.amount, 0);

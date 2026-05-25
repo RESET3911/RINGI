@@ -31,7 +31,7 @@ export default function CashflowBudgetWidget({ amount = 0 }: Props) {
       {/* 収入 / 支出 / 月次収支 */}
       <div className="grid grid-cols-3 gap-2 text-center mb-3">
         <div>
-          <div className="text-xs text-gray-400">収入</div>
+          <div className="text-xs text-gray-400">純収入</div>
           <div className="text-sm font-bold text-emerald-700">{fmt(monthlyIncome)}</div>
         </div>
         <div>

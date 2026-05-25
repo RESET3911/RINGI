@@ -185,7 +185,7 @@ export default function SettingsScreen({ settings, onSave }: Props) {
             <div className="space-y-4">
               {/* 収入 */}
               <div className="bg-emerald-50 rounded-xl p-3">
-                <p className="text-xs font-semibold text-emerald-700 mb-2">収入（CASHFLOWから自動取得）</p>
+                <p className="text-xs font-semibold text-emerald-700 mb-2">純収入（CASHFLOWから自動取得・外注費控除後）</p>
                 <div className="space-y-1.5">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">固定収入</span>
@@ -193,12 +193,12 @@ export default function SettingsScreen({ settings, onSave }: Props) {
                   </div>
                   {cashflow.variableIncome > 0 && (
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">臨時収入（今月）</span>
+                      <span className="text-gray-600">変動収入（外注費控除後）</span>
                       <span className="font-medium text-emerald-700">{formatCurrency(cashflow.variableIncome)}</span>
                     </div>
                   )}
                   <div className="flex justify-between text-sm font-semibold border-t border-emerald-200 pt-1.5 mt-1.5">
-                    <span className="text-gray-700">合計</span>
+                    <span className="text-gray-700">純収入合計</span>
                     <span className="text-emerald-700">{formatCurrency(cashflow.monthlyIncome)}</span>
                   </div>
                 </div>
