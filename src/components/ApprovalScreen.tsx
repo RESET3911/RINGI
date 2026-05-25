@@ -4,6 +4,17 @@ import { calcAlert, formatCurrency } from '../utils/alert';
 import AlertBadge from './AlertBadge';
 import Toast from './Toast';
 import ConfirmModal from './ConfirmModal';
+import { useCashflowBalance } from '../utils/cashflow';
+
+function fmt(n: number) {
+  return '¥' + n.toLocaleString('ja-JP');
+}
+
+function pctColor(pct: number) {
+  if (pct >= 50) return 'text-red-500 bg-red-50';
+  if (pct >= 20) return 'text-amber-600 bg-amber-50';
+  return 'text-emerald-700 bg-emerald-50';
+}
 
 type Props = {
   currentUser: User;
@@ -27,6 +38,8 @@ export default function ApprovalScreen({ currentUser, settings, applications, on
   const [decidedIds, setDecidedIds] = useState<Set<string>>(new Set());
   const [decided, setDecided] = useState<{ app: Application; status: 'approved' | 'rejected'; comment?: string } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+
+  const cashflow = useCashflowBalance();
 
   // 自分が決裁者 = 相手が申請者。楽観的にdecidedIdsで除外
   const pending = applications.filter(
@@ -104,6 +117,7 @@ export default function ApprovalScreen({ currentUser, settings, applications, on
         <div className="space-y-4">
           {pending.map(app => {
             const alert = calcAlert(app.amount, settings);
+            const monthlyBalance = cashflow?.balance ?? null;
             return (
               <div key={app.id} className="card">
                 <div className="flex items-start justify-between mb-2">
@@ -125,6 +139,22 @@ export default function ApprovalScreen({ currentUser, settings, applications, on
                 <p className="text-xs text-gray-400 mb-3">
                   {new Date(app.createdAt).toLocaleDateString('ja-JP', { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                 </p>
+
+                {/* CASHFLOW余剰資金に対する占有率 */}
+                {monthlyBalance !== null && monthlyBalance > 0 && (
+                  <div className="flex gap-2 flex-wrap mb-2">
+                    {([1, 3, 6] as const).map(months => {
+                      const saving = monthlyBalance * months;
+                      const pct = Math.round((app.amount / saving) * 100);
+                      return (
+                        <span key={months} className={`text-xs font-semibold px-2 py-0.5 rounded-full ${pctColor(pct)}`}>
+                          {months}ヶ月余剰の{pct}% ({fmt(saving)})
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+
                 {alert.level !== 'none' && <AlertBadge alert={alert} />}
                 <div className="flex gap-3 mt-3">
                   <button

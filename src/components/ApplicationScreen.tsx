@@ -72,7 +72,7 @@ export default function ApplicationScreen({ currentUser, settings, onSubmit, ini
       </div>
 
       {/* 案B: CASHFLOW予算ウィジェット */}
-      <CashflowBudgetWidget />
+      <CashflowBudgetWidget amount={numAmount > 0 ? numAmount : undefined} />
 
       {submitted ? (
         <div className="card text-center py-8">

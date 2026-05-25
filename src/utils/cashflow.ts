@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { db } from '../firebase';
 import {
   collection, doc, onSnapshot, setDoc, query, orderBy,
@@ -52,6 +53,12 @@ export function subscribeCashflowSummary(
   }, () => {});
 
   return () => { unsub1(); unsub2(); };
+}
+
+export function useCashflowBalance(): CashflowSummary | null {
+  const [summary, setSummary] = useState<CashflowSummary | null>(null);
+  useEffect(() => subscribeCashflowSummary(setSummary), []);
+  return summary;
 }
 
 // ── 承認時にCASHFLOWへ書き込む（案A） ────────────────────────

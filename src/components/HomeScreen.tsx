@@ -1,6 +1,11 @@
 import { User, Settings, Application } from '../types';
 import { calcSurplus, formatCurrency } from '../utils/alert';
 import { isSettingsComplete } from '../utils/storage';
+import { useCashflowBalance } from '../utils/cashflow';
+
+function fmt(n: number) {
+  return '¥' + n.toLocaleString('ja-JP');
+}
 
 type Props = {
   settings: Settings;
@@ -13,6 +18,7 @@ export default function HomeScreen({ settings, applications, onSelectUser }: Pro
   const pendingForB = applications.filter(a => a.status === 'pending' && a.applicant === 'A').length;
   const surplus = calcSurplus(settings);
   const settingsComplete = isSettingsComplete(settings);
+  const cashflow = useCashflowBalance();
 
   const UserButton = ({ user, name, pendingCount }: { user: User; name: string; pendingCount: number }) => (
     <button
@@ -63,7 +69,37 @@ export default function HomeScreen({ settings, applications, onSelectUser }: Pro
         )}
 
         {/* Surplus summary */}
-        {settingsComplete && (
+        {cashflow && (cashflow.monthlyIncome > 0 || cashflow.monthlyExpense > 0) ? (
+          <div className="card mb-6">
+            <div className="flex items-center gap-1.5 mb-2">
+              <span className="text-sm">💰</span>
+              <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">余剰資金（CASHFLOWベース）</p>
+            </div>
+            <p className={`text-3xl font-bold mb-1 ${cashflow.balance < 0 ? 'text-red-500' : 'text-primary-500'}`}>
+              {fmt(cashflow.balance)}
+              <span className="text-sm font-normal text-gray-400 ml-1">/月</span>
+            </p>
+            <p className="text-xs text-gray-400 mb-3">
+              収入 {fmt(cashflow.monthlyIncome)} − 生活費 {fmt(cashflow.monthlyExpense)}
+            </p>
+            <div className="border-t border-gray-100 pt-3">
+              <p className="text-xs text-gray-400 mb-2">生活費を引いた貯蓄予測</p>
+              <div className="grid grid-cols-3 gap-2 text-center">
+                {([1, 3, 6] as const).map(months => {
+                  const saving = cashflow.balance * months;
+                  return (
+                    <div key={months} className="bg-violet-50 rounded-xl p-2">
+                      <div className="text-xs text-gray-400">{months}ヶ月後</div>
+                      <div className={`text-sm font-bold ${saving >= 0 ? 'text-violet-700' : 'text-red-600'}`}>
+                        {fmt(saving)}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        ) : settingsComplete && (
           <div className="card mb-6">
             <p className="text-xs text-gray-500 uppercase tracking-wide font-medium mb-1">今月の余剰資金</p>
             <p className={`text-3xl font-bold ${surplus < 0 ? 'text-red-500' : 'text-primary-500'}`}>
