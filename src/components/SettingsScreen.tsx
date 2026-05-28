@@ -206,7 +206,7 @@ export default function SettingsScreen({ settings, onSave }: Props) {
 
               {/* 固定費リスト */}
               <div className="bg-rose-50 rounded-xl p-3">
-                <p className="text-xs font-semibold text-rose-700 mb-2">固定費リスト（CASHFLOWから自動取得）</p>
+                <p className="text-xs font-semibold text-rose-700 mb-2">生活費リスト（CASHFLOWから自動取得）</p>
                 {cashflow.expenseItems.length > 0 ? (
                   <div className="space-y-1.5">
                     {cashflow.expenseItems.map(item => (
@@ -217,13 +217,38 @@ export default function SettingsScreen({ settings, onSave }: Props) {
                     ))}
                     <div className="flex justify-between text-sm font-semibold border-t border-rose-200 pt-1.5 mt-1.5">
                       <span className="text-gray-700">合計</span>
-                      <span className="text-rose-700">{formatCurrency(cashflow.monthlyExpense)}</span>
+                      <span className="text-rose-700">{formatCurrency(cashflow.livingExpense)}</span>
                     </div>
                   </div>
                 ) : (
                   <p className="text-xs text-gray-400">固定費が登録されていません</p>
                 )}
               </div>
+
+              {cashflow.businessFixedItems.length > 0 && (
+                <div className="bg-indigo-50 rounded-xl p-3">
+                  <p className="text-xs font-semibold text-indigo-700 mb-2">固定経費（CASHFLOWから自動取得）</p>
+                  <div className="space-y-1.5">
+                    {cashflow.businessFixedItems.map(item => (
+                      <div key={item.id} className="flex justify-between text-sm">
+                        <span className="text-gray-600">{item.name}</span>
+                        <span className="font-medium text-gray-900">{formatCurrency(item.amount)}</span>
+                      </div>
+                    ))}
+                    <div className="flex justify-between text-sm font-semibold border-t border-indigo-200 pt-1.5 mt-1.5">
+                      <span className="text-gray-700">合計</span>
+                      <span className="text-indigo-700">{formatCurrency(cashflow.businessFixedExpense)}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {cashflow.savingsBalance > 0 && (
+                <div className="bg-violet-50 rounded-xl p-3">
+                  <p className="text-xs font-semibold text-violet-700 mb-1">現在の貯蓄残高</p>
+                  <p className="text-lg font-bold text-violet-800">{formatCurrency(cashflow.savingsBalance)}</p>
+                </div>
+              )}
 
               {/* 余剰資金プレビュー */}
               <div className="bg-primary-50 rounded-xl p-3">

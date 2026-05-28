@@ -80,18 +80,21 @@ export default function HomeScreen({ settings, applications, onSelectUser }: Pro
               <span className="text-sm font-normal text-gray-400 ml-1">/月</span>
             </p>
             <p className="text-xs text-gray-400 mb-3">
-              収入 {fmt(cashflow.monthlyIncome)} − 生活費 {fmt(cashflow.monthlyExpense)}
+              純収入 {fmt(cashflow.monthlyIncome)} − 生活費 {fmt(cashflow.livingExpense)} − 固定経費 {fmt(cashflow.businessFixedExpense)}
             </p>
             <div className="border-t border-gray-100 pt-3">
-              <p className="text-xs text-gray-400 mb-2">生活費を引いた貯蓄予測</p>
+              <p className="text-xs text-gray-400 mb-2">
+                貯蓄予測
+                {cashflow.savingsBalance > 0 && <span className="ml-1 text-violet-500">（残高 {fmt(cashflow.savingsBalance)} +）</span>}
+              </p>
               <div className="grid grid-cols-3 gap-2 text-center">
                 {([1, 3, 6] as const).map(months => {
-                  const saving = cashflow.balance * months;
+                  const projected = cashflow.savingsBalance + cashflow.balance * months;
                   return (
                     <div key={months} className="bg-violet-50 rounded-xl p-2">
                       <div className="text-xs text-gray-400">{months}ヶ月後</div>
-                      <div className={`text-sm font-bold ${saving >= 0 ? 'text-violet-700' : 'text-red-600'}`}>
-                        {fmt(saving)}
+                      <div className={`text-sm font-bold ${projected >= 0 ? 'text-violet-700' : 'text-red-600'}`}>
+                        {fmt(projected)}
                       </div>
                     </div>
                   );
