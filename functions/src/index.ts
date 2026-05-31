@@ -1,4 +1,5 @@
 import { onSchedule } from "firebase-functions/v2/scheduler";
+import { onRequest } from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
 
 admin.initializeApp();
@@ -385,5 +386,64 @@ export const weeklySummaryNotification = onSchedule(
       await logError("weeklySummaryNotification:fatal", error);
       throw error;
     }
+  }
+);
+
+// ── 初期設定セットアップ（初回デプロイ後に一度だけ呼ぶ） ──────────
+// GET https://asia-northeast1-ringi-1b31a.cloudfunctions.net/initUserSettings
+// 実行後はこの関数を削除してデプロイし直してください
+export const initUserSettings = onRequest(
+  {
+    region: "asia-northeast1",
+    memory: "256MiB",
+    timeoutSeconds: 30,
+  },
+  async (req, res) => {
+    // ringi/settings から現在の共有ntfyTopicとユーザー名を読む
+    const ringiSnap = await db.doc("ringi/settings").get();
+    const ringi = ringiSnap.data() as {
+      userA?: { name?: string };
+      userB?: { name?: string };
+      ntfyTopic?: string;
+    } | undefined;
+
+    const sharedTopic = ringi?.ntfyTopic ?? "";
+    const userAName   = ringi?.userA?.name ?? "さく";
+    const userBName   = ringi?.userB?.name ?? "たかはし";
+
+    // URLパラメータで上書き可能: ?topicA=xxx&topicB=yyy
+    const topicA = (req.query["topicA"] as string | undefined) ?? sharedTopic;
+    const topicB = (req.query["topicB"] as string | undefined) ?? sharedTopic;
+
+    // Hobby Ledger のユーザー名（URLパラメータで変更可）
+    const hobbyA = (req.query["hobbyA"] as string | undefined) ?? "れな";
+    const hobbyB = (req.query["hobbyB"] as string | undefined) ?? "けんしん";
+
+    await Promise.all([
+      db.doc("settings/userA").set({
+        name: userAName,
+        ntfyTopic: topicA,
+        hobbyLedgerUser: hobbyA,
+        cashflowUserId: "saku",
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      }),
+      db.doc("settings/userB").set({
+        name: userBName,
+        ntfyTopic: topicB,
+        hobbyLedgerUser: hobbyB,
+        cashflowUserId: "takahashi",
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      }),
+    ]);
+
+    res.json({
+      ok: true,
+      message: "settings/userA と settings/userB を作成しました。",
+      created: {
+        "settings/userA": { name: userAName, ntfyTopic: topicA, hobbyLedgerUser: hobbyA },
+        "settings/userB": { name: userBName, ntfyTopic: topicB, hobbyLedgerUser: hobbyB },
+      },
+      next: "個人ntfyトピックを設定するにはFirestoreコンソールか、topicA/topicBクエリパラメータで再実行してください。",
+    });
   }
 );
