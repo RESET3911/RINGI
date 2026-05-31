@@ -1,4 +1,4 @@
-import { User, Settings, Application } from '../types';
+import { User, Settings, Application, REQUEST_TYPE_CONFIG } from '../types';
 import { calcSurplus, formatCurrency } from '../utils/alert';
 import { isSettingsComplete } from '../utils/storage';
 import { useCashflowBalance } from '../utils/cashflow';
@@ -19,6 +19,9 @@ export default function HomeScreen({ settings, applications, onSelectUser }: Pro
   const surplus = calcSurplus(settings);
   const settingsComplete = isSettingsComplete(settings);
   const cashflow = useCashflowBalance();
+
+  // 決裁待ち一覧（HUBウィジェット用）
+  const pendingApps = applications.filter(a => a.status === 'pending');
 
   const UserButton = ({ user, name, pendingCount }: { user: User; name: string; pendingCount: number }) => (
     <button
@@ -118,10 +121,38 @@ export default function HomeScreen({ settings, applications, onSelectUser }: Pro
 
         {/* User selection */}
         <p className="text-center text-gray-600 font-medium mb-4">どちらのモードで使いますか？</p>
-        <div className="flex gap-4 mb-8">
+        <div className="flex gap-4 mb-6">
           <UserButton user="A" name={settings.userA.name} pendingCount={pendingForA} />
           <UserButton user="B" name={settings.userB.name} pendingCount={pendingForB} />
         </div>
+
+        {/* HUBウィジェット: 決裁待ち申請タイプ一覧 */}
+        {pendingApps.length > 0 && (
+          <div className="card mb-6">
+            <p className="text-sm font-semibold text-gray-700 mb-3">⏳ 決裁待ちの申請</p>
+            <div className="space-y-2">
+              {pendingApps.slice(0, 5).map(app => {
+                const typeCfg = app.requestType ? REQUEST_TYPE_CONFIG[app.requestType] : null;
+                const applicantName = app.applicant === 'A' ? settings.userA.name : settings.userB.name;
+                return (
+                  <div key={app.id} className="flex items-center gap-3 bg-gray-50 rounded-xl p-2.5">
+                    <span className="text-2xl">{typeCfg?.icon ?? '📝'}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-800 truncate">{app.item}</p>
+                      <p className="text-xs text-gray-400">{applicantName}が申請</p>
+                    </div>
+                    {app.amount > 0 && (
+                      <p className="text-sm font-bold text-primary-500 whitespace-nowrap">{formatCurrency(app.amount)}</p>
+                    )}
+                  </div>
+                );
+              })}
+              {pendingApps.length > 5 && (
+                <p className="text-xs text-gray-400 text-center">他 {pendingApps.length - 5} 件</p>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-3">

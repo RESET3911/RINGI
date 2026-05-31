@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { User, Settings, Application } from './types';
+import { User, Settings, Application, RequestType, ReviewData } from './types';
 import {
   defaultSettings,
   saveSettings,
@@ -20,7 +20,13 @@ import SettingsScreen from './components/SettingsScreen';
 
 type Screen = 'home' | 'apply' | 'approve' | 'history' | 'settings';
 
-type ReapplyValues = { item: string; amount: number; reason?: string; reapplyFromId?: string };
+type ReapplyValues = {
+  item: string;
+  amount: number;
+  reason?: string;
+  reapplyFromId?: string;
+  requestType?: RequestType;
+};
 
 export default function App() {
   const [settings, setSettings] = useState<Settings>(defaultSettings);
@@ -59,12 +65,19 @@ export default function App() {
     notifyApplication(app, settings).catch(() => {});
   }, [settings]);
 
-  const handleDecide = useCallback((id: string, status: 'approved' | 'rejected', comment?: string) => {
+  // Feature B: 拡張された決裁ハンドラ
+  const handleDecide = useCallback((
+    id: string,
+    status: 'approved' | 'rejected' | 'hold' | 'conditional' | 'discuss',
+    comment?: string,
+    conditionData?: { conditionType?: string | null; conditionText?: string | null; conditionAmount?: number | null }
+  ) => {
     const decidedAt = new Date().toISOString();
+    const update: Partial<Application> = { status, comment, decidedAt, ...conditionData };
     setApplications(prev =>
-      prev.map(a => a.id === id ? { ...a, status, comment, decidedAt } : a)
+      prev.map(a => a.id === id ? { ...a, ...update } : a)
     );
-    updateApplication(id, { status, comment, decidedAt });
+    updateApplication(id, update);
     const app = applications.find(a => a.id === id);
     if (app) {
       notifyDecision(app, status, comment, settings).catch(() => {});
@@ -88,8 +101,29 @@ export default function App() {
   }, [applications, settings]);
 
   const handleReapply = useCallback((app: Application) => {
-    setReapplyValues({ item: app.item, amount: app.amount, reason: app.reason, reapplyFromId: app.id });
+    // Feature B: 条件付き承認からの再申請時に条件文をreason先頭に追加
+    const reason = app.status === 'conditional' && app.conditionText
+      ? `[条件] ${app.conditionText}${app.reason ? '\n' + app.reason : ''}`.trim()
+      : app.reason;
+    setReapplyValues({ item: app.item, amount: app.amount, reason, reapplyFromId: app.id, requestType: app.requestType });
     setScreen('apply');
+  }, []);
+
+  // Feature C: 購入完了フラグ
+  const handleMarkPurchased = useCallback((id: string) => {
+    const purchasedAt = new Date().toISOString();
+    setApplications(prev =>
+      prev.map(a => a.id === id ? { ...a, isPurchased: true, purchasedAt } : a)
+    );
+    updateApplication(id, { isPurchased: true, purchasedAt });
+  }, []);
+
+  // Feature C: レビュー登録
+  const handleSubmitReview = useCallback((id: string, review: ReviewData) => {
+    setApplications(prev =>
+      prev.map(a => a.id === id ? { ...a, review } : a)
+    );
+    updateApplication(id, { review });
   }, []);
 
   const pendingForCurrent = currentUser
@@ -182,6 +216,8 @@ export default function App() {
             currentUser={currentUser}
             onReapply={handleReapply}
             onCancel={handleCancel}
+            onMarkPurchased={handleMarkPurchased}
+            onSubmitReview={handleSubmitReview}
           />
         )}
         {screen === 'settings' && (
