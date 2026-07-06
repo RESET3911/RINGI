@@ -3,35 +3,100 @@
 @tailwind utilities;
 
 @layer base {
-  body {
-    @apply bg-gray-50 text-gray-900;
+  html {
     -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-paper text-ink font-gothic antialiased;
+    /* 和紙の質感：微細ノイズ + ごく薄いビネット */
+    background-image:
+      radial-gradient(ellipse at 50% -20%, rgba(255, 253, 248, 0.9), transparent 60%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+  }
+  input, select, textarea {
+    font-size: 16px; /* iOSズーム防止 */
   }
 }
 
 @layer components {
+  /* ── 書類カード ─────────────────────────────── */
+  .card {
+    @apply bg-paper-card border border-ink-line rounded-md shadow-card p-4;
+  }
+  /* 稟議書：左端に朱の綴じ線が入る書類 */
+  .document {
+    @apply card relative overflow-hidden;
+  }
+  .document::before {
+    content: '';
+    @apply absolute left-0 top-0 bottom-0 w-[3px] bg-shu/70;
+  }
+
+  /* ── ボタン ────────────────────────────────── */
   .btn-primary {
-    @apply bg-primary-500 text-white font-semibold py-3 px-6 rounded-xl
-           active:bg-primary-700 transition-colors min-h-[44px]
-           disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply bg-shu text-paper-card font-bold py-3 px-6 rounded-md tracking-wider
+           shadow-card active:bg-shu-deep transition-colors min-h-[48px]
+           disabled:opacity-40 disabled:cursor-not-allowed;
   }
   .btn-secondary {
-    @apply bg-white text-primary-500 font-semibold py-3 px-6 rounded-xl
-           border-2 border-primary-300 active:bg-primary-50 transition-colors min-h-[44px];
+    @apply bg-paper-card text-ink font-bold py-3 px-6 rounded-md tracking-wider
+           border border-ink-line active:bg-paper-deep transition-colors min-h-[48px]
+           disabled:opacity-40;
   }
-  .btn-danger {
-    @apply bg-red-500 text-white font-semibold py-3 px-6 rounded-xl
-           active:bg-red-700 transition-colors min-h-[44px];
+  .btn-ghost {
+    @apply text-ink-soft font-medium py-2 px-4 rounded-md active:bg-paper-deep transition-colors;
   }
-  .card {
-    @apply bg-white rounded-2xl shadow-sm p-4;
-  }
-  .input-field {
-    @apply w-full border border-gray-300 rounded-xl px-4 py-3 text-base
-           focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent
-           min-h-[44px];
+
+  /* ── フォーム ──────────────────────────────── */
+  .field {
+    @apply w-full bg-paper-card border border-ink-line rounded-md px-4 py-3
+           text-ink placeholder:text-ink-faint min-h-[48px]
+           focus:outline-none focus:border-shu focus:ring-1 focus:ring-shu/40 transition-colors;
   }
   .label {
-    @apply block text-sm font-medium text-gray-700 mb-1;
+    @apply flex items-center gap-1.5 text-[13px] font-bold text-ink-soft tracking-wide mb-1.5;
+  }
+  .label::before {
+    content: '';
+    @apply inline-block w-1.5 h-1.5 bg-shu/60 rotate-45;
+  }
+
+  /* ── 見出し ────────────────────────────────── */
+  .heading {
+    @apply font-mincho font-bold text-ink text-xl tracking-[0.2em];
+  }
+  .heading-note {
+    @apply text-xs text-ink-faint tracking-[0.3em] uppercase;
+  }
+
+  /* ── 角印（ステータスシール）─────────────────── */
+  .seal {
+    @apply inline-flex items-center justify-center font-mincho font-bold
+           border rounded-[3px] px-1.5 py-0.5 text-[11px] leading-none tracking-widest whitespace-nowrap;
+  }
+
+  /* ── チップ（フィルタ等）───────────────────── */
+  .chip {
+    @apply whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-bold tracking-wide
+           border transition-colors min-h-[32px];
+  }
+  .chip-off {
+    @apply bg-paper-card text-ink-soft border-ink-line;
+  }
+  .chip-on {
+    @apply bg-ink text-paper border-ink;
+  }
+}
+
+@layer utilities {
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  /* 縦書き（装飾ラベル用） */
+  .tategaki {
+    writing-mode: vertical-rl;
+    text-orientation: upright;
   }
 }

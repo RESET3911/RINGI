@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="14" fill="#f6f1e7"/>
+  <circle cx="32" cy="32" r="23" fill="none" stroke="#c73e2c" stroke-width="4"/>
+  <text x="32" y="33" text-anchor="middle" dominant-baseline="central"
+        font-family="'Shippori Mincho','Hiragino Mincho ProN',serif"
+        font-size="28" font-weight="800" fill="#c73e2c">稟</text>
+</svg>

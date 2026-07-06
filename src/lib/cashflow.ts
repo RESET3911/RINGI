@@ -1,9 +1,6 @@
 import { useState, useEffect } from 'react';
 import { db } from '../firebase';
-import {
-  collection, doc, onSnapshot, setDoc, query, orderBy,
-} from 'firebase/firestore';
-
+import { collection, doc, onSnapshot, setDoc, query, orderBy } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
 import type { Application, BusinessExpenseCategory } from '../types';
 
@@ -15,7 +12,7 @@ function stripUndefined<T extends object>(obj: T): Partial<T> {
   ) as Partial<T>;
 }
 
-// ── 予算サマリー購読（案B） ────────────────────────────────────
+// ── CASHFLOW予算サマリー購読 ────────────────────────────────────
 
 export interface CashflowSummary {
   fixedIncome: number;
@@ -58,25 +55,23 @@ export function subscribeCashflowSummary(
     const bizFixedActive = activeExpenses.filter(e => e.expenseType === 'business_fixed');
     const livingExpense = livingActive.reduce((s, e) => s + e.amount, 0);
     const businessFixedExpense = bizFixedActive.reduce((s, e) => s + e.amount, 0);
-    const monthlyExpense = livingExpense + businessFixedExpense;
-    const expenseItems = livingActive.map(e => ({ id: e.id, name: e.name, amount: e.amount }));
-    const businessFixedItems = bizFixedActive.map(e => ({ id: e.id, name: e.name, amount: e.amount }));
     callback({
       fixedIncome, variableIncome, monthlyIncome,
-      livingExpense, businessFixedExpense, monthlyExpense,
-      balance: monthlyIncome - monthlyExpense,
-      expenseItems, businessFixedItems, savingsBalance,
+      livingExpense, businessFixedExpense,
+      monthlyExpense: livingExpense + businessFixedExpense,
+      balance: monthlyIncome - livingExpense - businessFixedExpense,
+      expenseItems: livingActive.map(e => ({ id: e.id, name: e.name, amount: e.amount })),
+      businessFixedItems: bizFixedActive.map(e => ({ id: e.id, name: e.name, amount: e.amount })),
+      savingsBalance,
     });
   };
 
-  const q1 = query(col('incomes'), orderBy('invoiceDate', 'desc'));
-  const unsub1 = onSnapshot(q1, snap => {
+  const unsub1 = onSnapshot(query(col('incomes'), orderBy('invoiceDate', 'desc')), snap => {
     incomes = snap.docs.map(d => d.data() as RawIncome);
     emit();
   }, () => {});
 
-  const q2 = query(col('expenses'), orderBy('createdAt', 'asc'));
-  const unsub2 = onSnapshot(q2, snap => {
+  const unsub2 = onSnapshot(query(col('expenses'), orderBy('createdAt', 'asc')), snap => {
     expenses = snap.docs.map(d => d.data() as RawExpense);
     emit();
   }, () => {});
@@ -95,7 +90,7 @@ export function useCashflowBalance(): CashflowSummary | null {
   return summary;
 }
 
-// ── 承認時にCASHFLOWへ書き込む（案A） ────────────────────────
+// ── 承認時にCASHFLOWへ書き込む ─────────────────────────────────
 
 export async function pushToCashflow(
   app: Application,

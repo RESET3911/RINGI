@@ -4,7 +4,7 @@ export default function HubButton() {
     <a
       href="https://RESET3911.github.io/"
       aria-label="HUBへ戻る"
-      className="fixed top-2 left-2 z-[45] flex items-center gap-1 rounded-full border border-gray-200 bg-white/85 px-2.5 py-1.5 text-xs font-bold text-gray-600 shadow-md backdrop-blur-sm transition-transform active:scale-95"
+      className="fixed top-2 left-2 z-[45] flex items-center gap-1.5 rounded-full border border-ink-line bg-paper-card/90 px-2.5 py-1.5 text-[11px] font-bold tracking-widest text-ink-soft shadow-card backdrop-blur-sm transition-transform active:scale-95"
     >
       <span className="text-sm leading-none">🏠</span>
       <span>HUB</span>

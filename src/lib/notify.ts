@@ -1,10 +1,10 @@
 import { collection, addDoc } from 'firebase/firestore';
 import { db } from '../firebase';
-import { Settings, Application } from '../types';
-import { formatCurrency } from './alert';
+import { Settings, Application, Status, STATUS_CONFIG, REQUEST_TYPE_CONFIG } from '../types';
+import { yen } from './format';
 
 // ── ntfy push ─────────────────────────────────────────────────────
-async function ntfyPush(topic: string, title: string, body: string): Promise<void> {
+export async function ntfyPush(topic: string, title: string, body: string): Promise<void> {
   if (!topic.trim()) return;
   await fetch('https://ntfy.sh', {
     method: 'POST',
@@ -13,7 +13,7 @@ async function ntfyPush(topic: string, title: string, body: string): Promise<voi
   });
 }
 
-// ── RINGI user → Firestore userId mapping ─────────────────────────
+// ── RINGI user → ST APPS共通 userId マッピング ─────────────────────
 type FirestoreUserId = 'saku' | 'takahashi';
 
 function ringiToFsId(ringiUser: 'A' | 'B', settings: Settings): FirestoreUserId {
@@ -22,7 +22,7 @@ function ringiToFsId(ringiUser: 'A' | 'B', settings: Settings): FirestoreUserId 
   return 'saku';
 }
 
-// ── Firestore notification write ──────────────────────────────────
+// ── HUB通知（notificationsコレクション） ──────────────────────────
 async function writeNotification(params: {
   toUser: FirestoreUserId | 'both';
   type: string;
@@ -48,9 +48,11 @@ export async function notifyApplication(app: Application, settings: Settings): P
   const applicantName = app.applicant === 'A' ? settings.userA.name : settings.userB.name;
   const approverUser  = app.applicant === 'A' ? 'B' : 'A';
   const toUser        = ringiToFsId(approverUser, settings);
-  const typeLabel     = app.requestType ? ` [${app.requestType}]` : '';
-  const title         = `📝 稟議申請：${app.item}${typeLabel}`;
-  const body          = `${applicantName}が申請しました${app.amount > 0 ? `\n金額: ${formatCurrency(app.amount)}` : ''}${app.reason ? `\n理由: ${app.reason}` : ''}`;
+  const typeLabel     = app.requestType ? `【${REQUEST_TYPE_CONFIG[app.requestType].label}】` : '';
+  const title         = `📝 稟議申請 ${typeLabel}${app.item}`;
+  const body          = `${applicantName}が申請しました`
+    + (app.amount > 0 ? `\n金額: ${yen(app.amount)}` : '')
+    + (app.reason ? `\n理由: ${app.reason}` : '');
 
   await Promise.allSettled([
     writeNotification({ toUser, type: 'ringi_new_request', title, body, linkedId: app.id }),
@@ -58,9 +60,14 @@ export async function notifyApplication(app: Application, settings: Settings): P
   ]);
 }
 
+const DECISION_EMOJI: Partial<Record<Status, string>> = {
+  approved: '✅', rejected: '❌', cancelled: '🚫',
+  hold: '⏸️', conditional: '🟠', discuss: '💬',
+};
+
 export async function notifyDecision(
   app: Application,
-  status: 'approved' | 'rejected' | 'cancelled' | 'hold' | 'conditional' | 'discuss',
+  status: Exclude<Status, 'pending'>,
   comment: string | undefined,
   settings: Settings,
 ): Promise<void> {
@@ -68,28 +75,19 @@ export async function notifyDecision(
   const applicant  = app.applicant === 'A' ? settings.userA : settings.userB;
   const toUser     = ringiToFsId(app.applicant, settings);
   const actorName  = status === 'cancelled' ? applicant.name : decider.name;
+  const label      = status === 'cancelled' ? '取り消し' : STATUS_CONFIG[status].label;
 
-  const emojiMap: Record<string, string> = {
-    approved:'✅', rejected:'❌', cancelled:'🚫', hold:'⏸️', conditional:'🟠', discuss:'💬',
-  };
-  const labelMap: Record<string, string> = {
-    approved:'承認', rejected:'否決', cancelled:'取り消し', hold:'保留', conditional:'条件付き承認', discuss:'要相談',
-  };
-  const typeMap: Record<string, string> = {
-    approved:'ringi_approved', rejected:'ringi_rejected', cancelled:'ringi_cancelled',
-    hold:'ringi_hold', conditional:'ringi_conditional', discuss:'ringi_discuss',
-  };
+  const conditionLine = status === 'conditional' && app.conditionText
+    ? `\n条件: ${app.conditionText}` : '';
 
-  const conditionLine = status === 'conditional' && (app as any).conditionText
-    ? `\n条件: ${(app as any).conditionText}` : '';
-
-  const emoji = emojiMap[status];
-  const label = labelMap[status];
-  const title = `${emoji} 稟議${label}：${app.item}`;
-  const body  = `${actorName}が${label}しました${app.amount > 0 ? `\n金額: ${formatCurrency(app.amount)}` : ''}${comment ? `\nコメント: ${comment}` : ''}${conditionLine}`;
+  const title = `${DECISION_EMOJI[status] ?? ''} 稟議${label}：${app.item}`;
+  const body  = `${actorName}が${label}しました`
+    + (app.amount > 0 ? `\n金額: ${yen(app.amount)}` : '')
+    + (comment ? `\nコメント: ${comment}` : '')
+    + conditionLine;
 
   await Promise.allSettled([
-    writeNotification({ toUser, type: typeMap[status] ?? `ringi_${status}`, title, body, linkedId: app.id }),
+    writeNotification({ toUser, type: `ringi_${status}`, title, body, linkedId: app.id }),
     ntfyPush(settings.ntfyTopic, title, body),
   ]);
 }

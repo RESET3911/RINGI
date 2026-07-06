@@ -1,6 +1,6 @@
 import { db } from '../firebase';
 import { doc, setDoc, updateDoc, collection, onSnapshot } from 'firebase/firestore';
-import { Settings, Application } from '../types';
+import { Settings, Application, User } from '../types';
 
 export const defaultSettings: Settings = {
   userA: { name: 'Aさん', email: '' },
@@ -14,25 +14,26 @@ export const defaultSettings: Settings = {
   ntfyTopic: '',
 };
 
-export async function saveSettings(settings: Settings): Promise<void> {
-  await setDoc(doc(db, 'ringi', 'settings'), settings);
-}
+// ── Firestore（既存スキーマ互換） ───────────────────────────────
+// settings:     doc  'ringi/settings'
+// applications: coll 'applications'
 
-// Firestoreはundefinedを受け付けないため除去する
+/** Firestoreはundefinedを受け付けないため除去する */
 function stripUndefined<T extends object>(obj: T): Partial<T> {
   return Object.fromEntries(
     Object.entries(obj).filter(([, v]) => v !== undefined)
   ) as Partial<T>;
 }
 
+export async function saveSettings(settings: Settings): Promise<void> {
+  await setDoc(doc(db, 'ringi', 'settings'), settings);
+}
+
 export async function saveApplication(app: Application): Promise<void> {
   await setDoc(doc(db, 'applications', app.id), stripUndefined(app));
 }
 
-export async function updateApplication(
-  id: string,
-  data: Partial<Application>
-): Promise<void> {
+export async function updateApplication(id: string, data: Partial<Application>): Promise<void> {
   await updateDoc(doc(db, 'applications', id), stripUndefined(data));
 }
 
@@ -43,11 +44,9 @@ export function subscribeSettings(
   return onSnapshot(
     doc(db, 'ringi', 'settings'),
     snap => {
-      if (snap.exists()) {
-        callback({ ...defaultSettings, ...(snap.data() as Settings) });
-      } else {
-        callback({ ...defaultSettings });
-      }
+      callback(snap.exists()
+        ? { ...defaultSettings, ...(snap.data() as Settings) }
+        : { ...defaultSettings });
     },
     () => onError?.()
   );
@@ -59,21 +58,24 @@ export function subscribeApplications(
 ): () => void {
   return onSnapshot(
     collection(db, 'applications'),
-    snap => {
-      const apps = snap.docs.map(d => d.data() as Application);
-      callback(apps);
-    },
+    snap => callback(snap.docs.map(d => d.data() as Application)),
     () => onError?.()
   );
 }
 
-export async function cancelApplication(id: string): Promise<void> {
-  await updateDoc(doc(db, 'applications', id), {
-    status: 'cancelled',
-    decidedAt: new Date().toISOString(),
-  });
-}
-
 export function isSettingsComplete(settings: Settings): boolean {
   return settings.monthlyIncome > 0 || settings.fixedCosts.length > 0;
+}
+
+// ── 自分がどちらか（この端末に記憶） ────────────────────────────
+const USER_KEY = 'ringi_current_user';
+
+export function loadCurrentUser(): User | null {
+  const v = localStorage.getItem(USER_KEY);
+  return v === 'A' || v === 'B' ? v : null;
+}
+
+export function saveCurrentUser(user: User | null): void {
+  if (user) localStorage.setItem(USER_KEY, user);
+  else localStorage.removeItem(USER_KEY);
 }

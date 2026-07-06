@@ -1,10 +1,12 @@
 import { Settings, AlertInfo } from '../types';
 
+/** 手動設定ベースの余剰資金（CASHFLOW未連携時のフォールバック） */
 export function calcSurplus(settings: Settings): number {
   const totalFixed = settings.fixedCosts.reduce((sum, c) => sum + c.amount, 0);
   return settings.monthlyIncome + settings.extraIncome - totalFixed;
 }
 
+/** 申請額が余剰資金の何%かでアラート判定 */
 export function calcAlert(amount: number, surplus: number, settings: Settings): AlertInfo {
   if (surplus <= 0) {
     return {
@@ -22,7 +24,7 @@ export function calcAlert(amount: number, surplus: number, settings: Settings): 
       level: 'danger',
       surplus,
       percentage,
-      message: `余剰資金の${percentage}%にあたります。慎重に検討してください。`,
+      message: `月次余剰の${percentage}%にあたります。慎重に。`,
     };
   }
   if (ratio >= settings.alertThresholdWarning) {
@@ -30,17 +32,8 @@ export function calcAlert(amount: number, surplus: number, settings: Settings): 
       level: 'warning',
       surplus,
       percentage,
-      message: `余剰資金の${percentage}%にあたります。`,
+      message: `月次余剰の${percentage}%にあたります。`,
     };
   }
-  return {
-    level: 'none',
-    surplus,
-    percentage,
-    message: '',
-  };
-}
-
-export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY' }).format(amount);
+  return { level: 'none', surplus, percentage, message: '' };
 }

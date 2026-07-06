@@ -13,13 +13,13 @@ export default function Toast({ message, type = 'success', onClose }: Props) {
   }, [onClose]);
 
   const colors = {
-    success: 'bg-green-500',
-    error: 'bg-red-500',
-    info: 'bg-blue-500',
+    success: 'bg-ink text-paper',
+    error: 'bg-shu text-paper-card',
+    info: 'bg-ai text-paper-card',
   };
 
   return (
-    <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 ${colors[type]} text-white px-6 py-3 rounded-full shadow-lg text-sm font-medium max-w-xs text-center`}>
+    <div className={`fixed bottom-24 left-1/2 z-[60] animate-toast-in ${colors[type]} px-5 py-2.5 rounded-full shadow-float text-sm font-bold tracking-wide max-w-[85vw] text-center`}>
       {message}
     </div>
   );
