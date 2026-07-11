@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import {
   Application, Settings, User, Status, RequestType, ReviewData,
-  REQUEST_TYPE_CONFIG,
+  REQUEST_TYPE_CONFIG, userMeta,
 } from '../types';
 import { yen, shortDate, monthLabel } from '../lib/format';
 import Seal from '../components/ui/Seal';
@@ -44,7 +44,7 @@ export default function History({
   const [cancelTarget, setCancelTarget] = useState<Application | null>(null);
   const [reviewTarget, setReviewTarget] = useState<Application | null>(null);
 
-  const getName = (user: User) => user === 'A' ? settings.userA.name : settings.userB.name;
+  const getName = (user: User) => userMeta(settings, user).name;
 
   // ── フィルタ + 月別グルーピング ─────────────────────────────
   const grouped = useMemo(() => {

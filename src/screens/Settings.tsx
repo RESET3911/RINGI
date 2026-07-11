@@ -87,8 +87,8 @@ export default function SettingsScreen({ settings, onSave }: Props) {
         <section className="card">
           <h3 className="font-mincho font-bold text-ink tracking-widest mb-3">ユーザー</h3>
           <div className="space-y-4">
-            {(['A', 'B'] as const).map(user => {
-              const key = user === 'A' ? 'userA' : 'userB';
+            {(['kenshin', 'rena'] as const).map(user => {
+              const key = user === 'kenshin' ? 'userA' : 'userB';
               const userData = form[key];
               return (
                 <div key={user}>

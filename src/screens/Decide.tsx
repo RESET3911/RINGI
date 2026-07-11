@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   User, Settings, Application, DecisionStatus, Tone,
-  REQUEST_TYPE_CONFIG, STATUS_CONFIG,
+  REQUEST_TYPE_CONFIG, STATUS_CONFIG, otherUser, userMeta,
 } from '../types';
 import { calcAlert, calcSurplus } from '../lib/alert';
 import { useCashflowBalance } from '../lib/cashflow';
@@ -66,8 +66,8 @@ export default function Decide({ currentUser, settings, applications, onDecide }
     .filter(a => a.status === 'pending' && a.applicant !== currentUser)
     .sort((a, b) => (a.createdAt > b.createdAt ? 1 : -1));
 
-  const otherName = currentUser === 'A' ? settings.userB.name : settings.userA.name;
-  const myName = currentUser === 'A' ? settings.userA.name : settings.userB.name;
+  const otherName = userMeta(settings, otherUser(currentUser)).name;
+  const myName = userMeta(settings, currentUser).name;
 
   const resetSheet = () => {
     setSelectedReason('');

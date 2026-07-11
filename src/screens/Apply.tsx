@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import type {
   User, Settings, Application, CashflowCategory, BusinessExpenseCategory, RequestType,
 } from '../types';
-import { BUSINESS_EXPENSE_LABELS, REQUEST_TYPE_CONFIG, ALL_REQUEST_TYPES } from '../types';
+import { BUSINESS_EXPENSE_LABELS, REQUEST_TYPE_CONFIG, ALL_REQUEST_TYPES, otherUser, userMeta } from '../types';
 import { calcAlert, calcSurplus } from '../lib/alert';
 import { useCashflowBalance } from '../lib/cashflow';
 import { yen } from '../lib/format';
@@ -99,7 +99,7 @@ export default function Apply({ currentUser, settings, onSubmit, initialValues, 
   }, [currentUser, item, numAmount, reason, cashflowCategory, cashflowSubCategory, selectedType,
       travelStart, travelEnd, scheduleDate, ruleChangeDetail, onSubmit, initialValues]);
 
-  const otherName = currentUser === 'A' ? settings.userB.name : settings.userA.name;
+  const otherName = userMeta(settings, otherUser(currentUser)).name;
 
   // ── 送信完了 ─────────────────────────────────────────────
   if (submitted) {

@@ -1,4 +1,4 @@
-import { User, Settings, Application, REQUEST_TYPE_CONFIG, STATUS_CONFIG } from '../types';
+import { User, Settings, Application, REQUEST_TYPE_CONFIG, STATUS_CONFIG, userMeta } from '../types';
 import { calcSurplus } from '../lib/alert';
 import { isSettingsComplete } from '../lib/store';
 import { useCashflowBalance } from '../lib/cashflow';
@@ -21,7 +21,7 @@ export default function Home({ settings, applications, currentUser, onGoto }: Pr
   const surplus = calcSurplus(settings);
   const settingsComplete = isSettingsComplete(settings);
 
-  const getName = (u: User) => u === 'A' ? settings.userA.name : settings.userB.name;
+  const getName = (u: User) => userMeta(settings, u).name;
 
   // 自分が決裁すべきもの / 相手の決裁待ち（自分の申請）
   const toDecide = applications.filter(a => a.status === 'pending' && a.applicant !== currentUser);

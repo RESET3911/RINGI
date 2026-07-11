@@ -1,8 +1,11 @@
-export type User = 'A' | 'B';
+export type User = 'kenshin' | 'rena';
+export const USER_IDS: readonly User[] = ['kenshin', 'rena'];
+export function otherUser(u: User): User { return u === 'kenshin' ? 'rena' : 'kenshin'; }
 
 export type Settings = {
   userA: { name: string; email: string };
   userB: { name: string; email: string };
+  users?: Record<User, { name: string; email: string }>;
   monthlyIncome: number;
   extraIncome: number;
   fixedCosts: { id: string; label: string; amount: number }[];
@@ -115,6 +118,10 @@ export type Application = {
 };
 
 // ── アラート ────────────────────────────────────────────────────
+export function userMeta(s: Settings, u: User): { name: string; email: string } {
+  return s.users?.[u] ?? (u === 'kenshin' ? s.userA : s.userB);
+}
+
 export type AlertLevel = 'none' | 'warning' | 'danger';
 
 export type AlertInfo = {

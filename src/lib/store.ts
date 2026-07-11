@@ -67,15 +67,16 @@ export function isSettingsComplete(settings: Settings): boolean {
   return settings.monthlyIncome > 0 || settings.fixedCosts.length > 0;
 }
 
-// ── 自分がどちらか（この端末に記憶） ────────────────────────────
-const USER_KEY = 'ringi_current_user';
+// ── 自分がどちらか（この端末に記憶・全アプリ共通キー） ──────────
+import { loadUser, saveUser, clearUser } from '../shared/users';
+
+const LEGACY = { key: 'ringi_current_user', map: { A: 'kenshin', B: 'rena' } as Record<string, User> };
 
 export function loadCurrentUser(): User | null {
-  const v = localStorage.getItem(USER_KEY);
-  return v === 'A' || v === 'B' ? v : null;
+  return loadUser(LEGACY);
 }
 
 export function saveCurrentUser(user: User | null): void {
-  if (user) localStorage.setItem(USER_KEY, user);
-  else localStorage.removeItem(USER_KEY);
+  if (user) saveUser(user);
+  else clearUser();
 }

@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { User, Settings, Application, RequestType, ReviewData, DecisionStatus } from './types';
+import { User, Settings, Application, RequestType, ReviewData, DecisionStatus, otherUser, userMeta } from './types';
 import {
   defaultSettings, saveSettings, saveApplication, updateApplication,
   subscribeSettings, subscribeApplications, loadCurrentUser, saveCurrentUser,
@@ -62,9 +62,9 @@ export default function App() {
 
   const handleSwitchUser = () => {
     if (!currentUser) return;
-    const next: User = currentUser === 'A' ? 'B' : 'A';
+    const next: User = otherUser(currentUser);
     handleSelectUser(next);
-    const name = next === 'A' ? settings.userA.name : settings.userB.name;
+    const name = userMeta(settings, next).name;
     setToast({ msg: `${name} に切り替えました` });
   };
 
@@ -152,8 +152,8 @@ export default function App() {
         </div>
         <p className="text-sm font-bold text-ink-soft mb-4 animate-rise-in [animation-delay:.1s]">あなたはどちら？</p>
         <div className="flex gap-4 w-full max-w-sm animate-rise-in [animation-delay:.15s]">
-          {(['A', 'B'] as const).map(u => {
-            const name = u === 'A' ? settings.userA.name : settings.userB.name;
+          {(['kenshin', 'rena'] as const).map(u => {
+            const name = userMeta(settings, u).name;
             return (
               <button
                 key={u}
@@ -173,7 +173,7 @@ export default function App() {
     );
   }
 
-  const userName = currentUser === 'A' ? settings.userA.name : settings.userB.name;
+  const userName = userMeta(settings, currentUser).name;
 
   return (
     <div className="min-h-dvh pb-24">
